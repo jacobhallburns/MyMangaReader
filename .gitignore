@@ -1,0 +1,22 @@
+# Node modules
+**/node_modules/
+**/npm-debug.log
+
+# Environment variables
+.env
+
+# Local MongoDB data
+db/
+db/*
+
+# Docker artifacts
+**/dist/
+**/build/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# VSCode or IDE files
+.vscode/
+.idea/
