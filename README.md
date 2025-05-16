@@ -11,7 +11,7 @@ A website for keeping track of manga read, and finding related manga
 
 
 ## Compile Instructions:
-I am still working on the docker files, do bear with me if they are not working yet.<br>
+Run Docker Desktop and wait for it to say "Docker Desktop is running"<br>
 
 From the ../MyMangaReader/ directory, run the following code: <br>
 ```docker-compose up --build```
