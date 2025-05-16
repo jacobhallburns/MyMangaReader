@@ -15,3 +15,10 @@ Run Docker Desktop and wait for it to say "Docker Desktop is running"<br>
 
 From the ../MyMangaReader/ directory, run the following code: <br>
 ```docker-compose up --build```
+<br>
+
+## Local Host Site
+Frontend <br>
+```http://localhost:3000/``` <br>
+Backend <br>
+```http://localhost:5000/``` <br>
