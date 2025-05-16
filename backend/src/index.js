@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 
 const dbUrl = process.env.DB_URL;
 
-mongoose.connect(dbUrl, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(dbUrl)
     .then(() => console.log('Connected to DB'))
     .catch(err => console.error('DB connection error:', err));
 
