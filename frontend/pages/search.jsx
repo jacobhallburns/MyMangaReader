@@ -28,7 +28,7 @@ export default function MangaSearch() {
             kitsuId: manga.id,
             title: attributes.titles.en_jp || attributes.slug,
             coverImage: attributes.posterImage?.small || '',
-            status: 'Completed',    // Default status for new entry
+            status: 'completed',    // Default status for new entry
             rating: null            // No rating by default
         };
 
