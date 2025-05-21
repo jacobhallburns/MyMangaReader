@@ -4,10 +4,11 @@ A website for keeping track of manga read, and finding related manga
 
 ## Tools we are using
 
-[Gazu](https://gazu.cg-wire.com/) <br>
-[Kitsu](https://api-docs.kitsu.cloud/) <br>
-[Next.js](https://nextjs.org/) <br>
-[Node.js](https://nodejs.org/en) <br>
+- **Frontend**: [Next.js](https://nextjs.org/)
+- **Backend**: [Node.js](https://nodejs.org/en) + [Express](https://expressjs.com/)
+- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
+- **API**: [Kitsu API](https://api-docs.kitsu.cloud/)
+- **Containerization**: Docker
 
 
 ## Compile Instructions:
@@ -20,5 +21,7 @@ From the ../MyMangaReader/ directory, run the following code: <br>
 ## Local Host Site
 Frontend <br>
 ```http://localhost:3000/``` <br>
+Manga List <br>
+```http://localhost:3000/manga-list``` <br>
 Backend <br>
 ```http://localhost:5000/``` <br>
