@@ -1,10 +1,31 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 
 export default function MangaSearch() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [adding, setAdding] = useState(null); // Tracks manga being added
+    const [addedIds, setAddedIds] = useState(new Set()); // Tracks manga already added
+
+
+    useEffect(() => {
+        const fetchAddedManga = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`);
+                const data = await res.json();
+
+                // Gets ids from kitsu and saves it in this set
+                const ids = new Set(data.map(entry => entry.kitsuId));
+                setAddedIds(ids)
+            } catch (err) {
+                console.error(`Failed to load existing mnanga.`, err);
+            }
+        };
+        fetchAddedManga();
+    }, []);
+
+
 
     // Searches Kitsu api with user query
     const searchKitsu = async (e) => {
@@ -28,19 +49,25 @@ export default function MangaSearch() {
             kitsuId: manga.id,
             title: attributes.titles.en_jp || attributes.slug,
             coverImage: attributes.posterImage?.small || '',
-            status: 'completed',    // Default status for new entry
+            status: 'Completed',    // Default status for new entry
             rating: null            // No rating by default
         };
 
         // Sends post request to backend for new manga entry
-        await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        try { 
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
         });
 
-        setAdding(null);    // Resets adding state
+        setAddedIds(prev => new Set(prev).add(manga.id));
         alert(`${payload.title} added to your list.`);
+        } catch (error) {
+            alert(`Error: ${err.message}`);
+        } finally {
+            setAdding(null); // Resets adding state
+        }
     };
 
     // Renders UI
@@ -64,21 +91,43 @@ export default function MangaSearch() {
                 <ul style={{ listStyle: 'none', padding: 0 }}>
                     {results.map((manga) => {
                         const attributes = manga.attributes;
-                        return (
-                            <li key={manga.id} style={{ marginBottom: '2rem', borderBottom: '1px solid #ccc', paddingBottom: '1rem' }}>
-                                <h2>{attributes.titles.en_jp || attributes.slug}</h2>
-                                {attributes.posterImage?.small && (
-                                    <img src={attributes.posterImage.small} alt={attributes.titles.en_jp} style={{ maxWidth: '150px' }} />
-                                )}
-                                <p>{attributes.synopsis?.slice(0, 200)}{attributes.synopsis?.length > 200 ? '...' : ''}</p>
-                                <button onClick={() => addToMyList(manga)} disabled={adding === manga.id}>
-                                    {adding === manga.id ? 'Adding...' : 'Add to My List'}
-                                </button>
-                            </li>
-                        );
-                    })}
-                </ul>
-            )}
+                        const isAdded = addedIds.has(manga.id);
+                    return (
+                        <li
+                            key={manga.id}
+                            style={{
+                                marginBottom: '2rem',
+                                borderBottom: '1px solid #ccc',
+                                paddingBottom: '1rem'
+                            }}
+                        >
+                            <h2>{attributes.titles.en_jp || attributes.slug}</h2>
+                            {attributes.posterImage?.small && (
+                                <img
+                                    src={attributes.posterImage.small}
+                                    alt={attributes.titles.en_jp}
+                                    style={{ maxWidth: '150px' }}
+                                />
+                            )}
+                            <p>
+                                {attributes.synopsis?.slice(0, 200)}
+                                {attributes.synopsis?.length > 200 ? '...' : ''}
+                            </p>
+                            <button
+                                onClick={() => addToMyList(manga)}
+                                disabled={adding === manga.id || isAdded}
+                            >
+                                {isAdded
+                                    ? 'Already Added'
+                                    : adding === manga.id
+                                    ? 'Adding...'
+                                    : 'Add to My List'}
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
+        )}
         </div>
     );
 }

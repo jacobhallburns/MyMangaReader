@@ -8,8 +8,8 @@ const MangaSchema = new mongoose.Schema({
     // Saves user reading status for each manga
     status: {
         type: String,
-        enum: ['reading', 'completed', 'plan-to-read'],
-        default: 'completed',
+        enum: ['Reading', 'Completed', 'Plan-to-read'],
+        default: 'Completed',
     },
     rating: Number,     // User rating
     // Potentially for multi user support
