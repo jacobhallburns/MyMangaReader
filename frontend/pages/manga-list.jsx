@@ -34,7 +34,10 @@ export default function MangaList() {
 
     // Shows manga list
     return (
-        <div style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem', 
+            alignItems: 'flex-start', minHeight: '100vh', background: '#f8f8f8'
+        }}>
+            <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
             <h1>My Manga List</h1>
             <h3><a href="/search" style={{ display: 'inline-block', marginBottom: '1rem' }}>Add manga from Kitsu search</a></h3>
             {manga.length === 0 ? <p>No manga found. Go to the search page to add some!</p> : (
@@ -50,6 +53,7 @@ export default function MangaList() {
                     ))}
                 </ul>
             )}
+         </div>
          </div>
     );
 }

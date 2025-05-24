@@ -72,7 +72,14 @@ export default function MangaSearch() {
 
     // Renders UI
     return (
-        <div style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem', 
+            alignItems: 'flex-start', minHeight: '100vh', background: '#f8f8f8'
+        }}>
+            <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
+            <h3><a href="/manga-list" style={{ display: 'inline-block', marginBottom: '1rem' }}>
+                Return to My Manga List</a>
+            </h3>
+
             <h1>Search Manga (Kitsu API)</h1>
 
             <form onSubmit={searchKitsu} style={{ marginBottom: '1rem' }}>
@@ -128,6 +135,7 @@ export default function MangaSearch() {
                 })}
             </ul>
         )}
+        </div>
         </div>
     );
 }
