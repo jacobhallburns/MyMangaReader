@@ -62,7 +62,6 @@ export default function MangaSearch() {
         });
 
         setAddedIds(prev => new Set(prev).add(manga.id));
-        alert(`${payload.title} added to your list.`);
         } catch (error) {
             alert(`Error: ${err.message}`);
         } finally {
