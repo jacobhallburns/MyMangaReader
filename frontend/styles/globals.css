@@ -1,0 +1,39 @@
+/* Default styling settings*/
+
+body {
+    margin: 0;
+    background-color: white;            /*Page background*/
+    color: #cc0000;                     /*Default text color*/
+    font-family: 'Segoe UI', sans-serif;  /*Default font*/
+}
+
+/*For links*/
+a {
+    color: #cc0000;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #00cc66  /*Changes link to green when hover overing it*/
+}
+
+/*For buttons*/
+button {
+    background-color: #cc0000;  
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;    /*Space in button*/
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #00cc66;  /*Green when hovering over*/
+}
+
+/*For inputs (like search)*/
+input, select {
+    padding: 0.5rem;
+    border: 1px solid #00cc66;
+    background-color: #f2a7c2;
+    color: white;
+}

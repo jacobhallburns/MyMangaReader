@@ -73,10 +73,13 @@ export default function MangaSearch() {
     // Renders UI
     return (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem', 
-            alignItems: 'flex-start', minHeight: '100vh', background: '#f8f8f8'
+            alignItems: 'flex-start', minHeight: '1000vh', background: '#f8f8f8'
         }}>
-            <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
-            <h3><a href="/manga-list" style={{ display: 'inline-block', marginBottom: '1rem' }}>
+            <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center',
+                borderLeft: '2px solid #00cc66', borderRight: '2px solid #00cc66',
+                paddingLeft: '6rem', paddingRight: '6rem', minHeight: '100vh'
+             }}>
+            <h3><a href="/manga-list" style={{ display: 'inline-block', marginBottom: '1rem'}}>
                 Return to My Manga List</a>
             </h3>
 
@@ -89,7 +92,12 @@ export default function MangaSearch() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                 />
-                <button type="submit">Search</button>
+                <button 
+                type="submit"
+                style={{
+                    border: '1px solid #00cc66'
+                }}>
+                Search</button>
             </form>
 
             {loading && <p>Searching...</p>}
@@ -104,7 +112,7 @@ export default function MangaSearch() {
                             key={manga.id}
                             style={{
                                 marginBottom: '2rem',
-                                borderBottom: '1px solid #ccc',
+                                borderBottom: '1px solid #00cc66',
                                 paddingBottom: '1rem'
                             }}
                         >
@@ -116,13 +124,16 @@ export default function MangaSearch() {
                                     style={{ maxWidth: '150px' }}
                                 />
                             )}
-                            <p>
-                                {attributes.synopsis?.slice(0, 200)}
-                                {attributes.synopsis?.length > 200 ? '...' : ''}
+                            <p style = {{ color: '#ff6699'}}>
+                                {attributes.synopsis?.slice(0, 250)}
+                                {attributes.synopsis?.length > 250 ? '...' : ''}
                             </p>
                             <button
                                 onClick={() => addToMyList(manga)}
                                 disabled={adding === manga.id || isAdded}
+                                style = {{
+                                    backgroundColor: isAdded ? '#00cc66' : undefined
+                                }}
                             >
                                 {isAdded
                                     ? 'Already Added'

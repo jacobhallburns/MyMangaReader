@@ -37,13 +37,16 @@ export default function MangaList() {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem', 
             alignItems: 'flex-start', minHeight: '100vh', background: '#f8f8f8'
         }}>
-            <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
+            <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center',
+                borderLeft: '2px solid #00cc66', borderRight: '2px solid #00cc66',
+                paddingLeft: '6rem', paddingRight: '6rem', minHeight: '100vh'
+             }}>
             <h1>My Manga List</h1>
             <h3><a href="/search" style={{ display: 'inline-block', marginBottom: '1rem' }}>Add manga from Kitsu search</a></h3>
             {manga.length === 0 ? <p>No manga found. Go to the search page to add some!</p> : (
                 <ul style={{ listStyle: 'none', padding: 0 }}>
                     {manga.map((entry) => (
-                        <li key={entry._id} style={{ marginBottom: '1rem', borderBottom: '1px solid #ccc', paddingBottom: '1rem' }}>
+                        <li key={entry._id} style={{ marginBottom: '1rem', borderBottom: '1px solid #00cc66', paddingBottom: '1rem' }}>
                             <h2>{entry.title}</h2>
                             {entry.coverImage && <img src={entry.coverImage} alt={entry.title} style={{ maxWidth: '200px' }} />}
                             <p>Status: {entry.status}</p>
