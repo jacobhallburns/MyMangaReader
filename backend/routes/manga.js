@@ -29,4 +29,20 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// Updates status and rating of manga (by ID)
+// (Not currently being used, will be used when editing existing manga entries)
+router.patch('/:id', async (req, res) => {
+    try {
+        const updatedManga = await Manga.findByIdAndUpdate(
+            req.params.id, { $set: {
+                status: req.body.status,
+                rating: req.body.rating
+            }}, {new: true}
+        );
+        res.json(updatedManga);
+    } catch (err) {
+        res.status(400).json({error: err.message});
+    }
+});
+
 export default router;

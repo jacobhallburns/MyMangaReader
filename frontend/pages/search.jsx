@@ -7,7 +7,10 @@ export default function MangaSearch() {
     const [loading, setLoading] = useState(false);
     const [adding, setAdding] = useState(null); // Tracks manga being added
     const [addedIds, setAddedIds] = useState(new Set()); // Tracks manga already added
-
+    // for modal when adding manga
+    const [editingManga, setEditingManga] = useState(null);
+    const [tempRating, setTempRating] = useState('');
+    const [tempStatus, setTempStatus] = useState('Completed');
 
     useEffect(() => {
         const fetchAddedManga = async () => {
@@ -39,34 +42,42 @@ export default function MangaSearch() {
         setLoading(false);
     };
 
-    // Adds selected manga to db
-    const addToMyList = async (manga) => {
-        setAdding(manga.id); // Sets "adding" state to disable button while adding
-        const attributes = manga.attributes;
+    // Opens modals to Add selected manga to db
+    const openAddModal = (manga) => {
+        // Stores selected manga and resets rating/status
+        setEditingManga(manga);
+        setTempRating(null);
+        setTempStatus('Completed');
+    };
 
-        // Formats data to save to backend
+    // Adds chosen manga to db
+    const addManga = async () => {
+        const attributes = editingManga.attributes;
         const payload = {
-            kitsuId: manga.id,
+            kitsuId: editingManga.id,
             title: attributes.titles.en_jp || attributes.slug,
             coverImage: attributes.posterImage?.small || '',
-            status: 'Completed',    // Default status for new entry
-            rating: null            // No rating by default
+            status: tempStatus,
+            rating: tempRating
         };
 
-        // Sends post request to backend for new manga entry
-        try { 
+        try {
+            // Sends request to backend to add new manga
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-        });
+            });
 
-        setAddedIds(prev => new Set(prev).add(manga.id));
-        } catch (error) {
-            alert(`Error: ${err.message}`);
-        } finally {
-            setAdding(null); // Resets adding state
+            const savedManga = await response.json();
+            setAddedIds(prev => new Set(prev).add(editingManga.id));
+        } catch (err) {
+            alert(`Error saving manga: ${err.message}`);
         }
+        // resets variables
+        setEditingManga(null);
+        setTempRating(null);
+        setTempStatus('Completed');
     };
 
     // Renders UI
@@ -127,23 +138,59 @@ export default function MangaSearch() {
                                 {attributes.synopsis?.slice(0, 250)}
                                 {attributes.synopsis?.length > 250 ? '...' : ''}
                             </p>
-                            <button
-                                onClick={() => addToMyList(manga)}
-                                disabled={adding === manga.id || isAdded}
-                                style = {{
-                                    backgroundColor: isAdded ? '#00cc66' : undefined
-                                }}
+                            <button onClick={() => openAddModal(manga)}
+                                disabled={isAdded}
+                                style={{ backgroundColor: isAdded ? '#00cc66' : undefined}}
                             >
-                                {isAdded
-                                    ? 'Already Added'
-                                    : adding === manga.id
-                                    ? 'Adding...'
-                                    : 'Add to My List'}
-                            </button>
+                                {isAdded ? 'Already Added' : 'Add to My List'}
+                                </button>
                         </li>
                     );
                 })}
             </ul>
+        )}
+        {editingManga && (
+            <div style={{
+                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                zIndex: 9999
+            }}>
+                <div style={{ background: 'white', padding: '2rem', color: '#cc0000', textAlign: 'left', border: '2px solid #00cc66'}}>
+                    <h2>{editingManga.attributes.titles.en_jp}</h2>
+
+                    <label>Status: </label>
+                    <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)}>
+                        <option value="Completed">Completed</option>
+                        <option value="Reading">Reading</option>
+                        <option value="Plan-to-read">Plan to Read</option>
+                    </select>
+
+                    <br /><br />
+
+                    <label>Rating (1–10): </label>
+                    <select value = {tempRating} onChange={(e) => setTempRating(Number(e.target.value))}>
+                        <option value="null">N/A</option>
+                        <option value="10">10 – Masterpiece</option>
+                        <option value="9">9 - Amazing</option>
+                        <option value="8">8 - Great</option>
+                        <option value="7">7 – Good</option>
+                        <option value="6">6 - Fine</option>
+                        <option value="5">5 – Average</option>
+                        <option value="4">4 - Poor</option>
+                        <option value="3">3 – Bad</option>
+                        <option value="2">2 - Really Bad</option>
+                        <option value="1">1 – Awful</option>
+                    </select>
+
+                    <br /><br />
+
+                    <button onClick={addManga}>
+                        Save
+                    </button>
+
+                    <button onClick={() => setEditingManga(null)} style={{ marginLeft: '1rem' }}>Cancel</button>
+                </div>
+            </div>
         )}
         </div>
         </div>
