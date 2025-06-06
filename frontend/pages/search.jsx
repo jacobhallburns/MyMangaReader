@@ -5,7 +5,6 @@ export default function MangaSearch() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [adding, setAdding] = useState(null); // Tracks manga being added
     const [addedIds, setAddedIds] = useState(new Set()); // Tracks manga already added
     // for modal when adding manga
     const [editingManga, setEditingManga] = useState(null);
@@ -27,7 +26,6 @@ export default function MangaSearch() {
         };
         fetchAddedManga();
     }, []);
-
 
 
     // Searches Kitsu api with user query
@@ -169,7 +167,7 @@ export default function MangaSearch() {
 
                     <label>Rating (1–10): </label>
                     <select value = {tempRating} onChange={(e) => setTempRating(Number(e.target.value))}>
-                        <option value="null">N/A</option>
+                        <option value={null}>N/A</option>
                         <option value="10">10 – Masterpiece</option>
                         <option value="9">9 - Amazing</option>
                         <option value="8">8 - Great</option>
