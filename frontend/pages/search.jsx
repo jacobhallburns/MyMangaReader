@@ -157,6 +157,30 @@ export default function MangaSearch() {
                 <div style={{ background: 'white', padding: '2rem', color: '#cc0000', textAlign: 'left', border: '2px solid #00cc66'}}>
                     <h2>{editingManga.attributes.titles.en_jp}</h2>
 
+                    <div style={{
+                        display: 'flex',
+                        gap: '1rem',
+                        alignItems: 'flex-start',
+                        marginBottom: '1rem'
+                    }}>
+                        <img
+                            src={editingManga.attributes.posterImage?.small}
+                            alt={editingManga.attributes.titles.en_jp}
+                            style={{ maxWidth: '200px', flexShrink: 0 }}
+                        />
+
+                        <p style={{
+                            color: '#ff6699',
+                            maxWidth: '400px',
+                            marginTop: 0,
+                            lineHeight: '1.4'
+                        }}>
+                            {editingManga.attributes.synopsis?.slice(0, 1000)}
+                            {editingManga.attributes.synopsis?.length > 1000 ? '...' : ''}
+                        </p>
+                    </div>
+
+
                     <label>Status: </label>
                     <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)}>
                         <option value="Completed">Completed</option>

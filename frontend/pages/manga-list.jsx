@@ -52,14 +52,27 @@ export default function MangaList() {
                     {manga.map((entry) => (
                         <li key={entry._id} style={{ marginBottom: '1rem', borderBottom: '1px solid #00cc66', paddingBottom: '1rem' }}>
                             <h2>{entry.title}</h2>
+                            <div style={{
+                                display: 'flex',
+                                gap: '1rem',
+                                alignItems: 'center'
+                            }}>
+
                             {entry.coverImage && <img src={entry.coverImage} alt={entry.title} style={{ maxWidth: '200px' }} />}
-                            <p>Status: {entry.status}</p>
-                            <p>Rating: {entry.rating ?? 'N/A'}</p>
-                            <button onClick={() => {
-                                setEditingManga(entry);
-                                setTempStatus(entry.status || 'Completed');
-                                setTempRating(entry.rating ?? 'null');
-                            }}>Edit</button>
+
+
+                            <div style={{ textAlign: 'left' }}>
+                                <p style={{ color: '#ff6699', maxWidth: '400px'}}>{entry.synopsis?.slice(0, 250)}
+                                        {entry.synopsis?.length > 250 ? '...' : ''}</p>
+                                <p>Status: {entry.status}</p>
+                                <p>Rating: {entry.rating ?? 'N/A'}</p>
+                                <button onClick={() => {
+                                    setEditingManga(entry);
+                                    setTempStatus(entry.status || 'Completed');
+                                    setTempRating(entry.rating ?? 'null');
+                                }}>Edit</button>
+                            </div>
+                            </div>
                         </li>
                     ))}
                 </ul>
@@ -145,8 +158,8 @@ export default function MangaList() {
                     }} style={{ marginLeft: '1rem'}}>
                         Remove from My List
                     </button>
-    </div>
-  </div>
+                </div>
+            </div>
 )}
 
          </div>
