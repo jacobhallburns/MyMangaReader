@@ -55,6 +55,7 @@ export default function MangaSearch() {
             kitsuId: editingManga.id,
             title: attributes.titles.en_jp || attributes.slug,
             coverImage: attributes.posterImage?.small || '',
+            synopsis: attributes.synopsis || '',
             status: tempStatus,
             rating: tempRating
         };

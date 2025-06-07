@@ -12,6 +12,7 @@ const MangaSchema = new mongoose.Schema({
         default: 'Completed',
     },
     rating: Number,     // User rating
+    synopsis: String,   // Manga synopsis
     // Potentially for multi user support
     userId: {
         type: mongoose.Schema.Types.ObjectId,

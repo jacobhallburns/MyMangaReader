@@ -75,8 +75,20 @@ export default function MangaList() {
                         textAlign: 'left', border: '2px solid #00cc66'
                     }}>
                     <h2>{editingManga.title}</h2>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '1rem'}}>
+                    <img
+                        src={editingManga.coverImage}
+                        alt={editingManga.title}
+                        style={{ maxWidth: '200px', flexShrink: 0 }}
+                    />
 
-                    <label>Status:</label>
+                    <p style={{ color: '#ff6699', maxWidth: '400px', marginTop: 0}}>
+                        {editingManga.synopsis?.slice(0, 1000)}
+                        {editingManga.synopsis?.length > 1000 ? '...' : ''}
+                    </p>
+                    </div>
+
+                    <label>Status: </label>
                     <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)}>
                         <option value="Completed">Completed</option>
                         <option value="Reading">Reading</option>
