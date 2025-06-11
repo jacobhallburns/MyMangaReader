@@ -22,16 +22,7 @@ export default function MangaList() {
             setLoading(false);          // Stops loading message 
         });
     }, []);                             // Empty array means this only runs on page load
-
-    // Function deletes manga entry by ID
-    const deleteManga = async (id) => {
-        // Sends delete request to backend
-        await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga/${id}`, {
-            method: 'DELETE',
-        });
-        // Update local state
-        setManga(manga.filter(entry => entry._id !== id));
-    };
+    
 
     // Shows loading message while its loading
     if (loading) return <p>Loading...</p>;
@@ -61,8 +52,8 @@ export default function MangaList() {
                             {entry.coverImage && <img src={entry.coverImage} alt={entry.title} style={{ maxWidth: '200px' }} />}
 
 
-                            <div style={{ textAlign: 'left' }}>
-                                <p style={{ color: '#ff6699', maxWidth: '400px'}}>{entry.synopsis?.slice(0, 250)}
+                            <div style={{textAlign: 'left', flex: 1}}>
+                                <p style={{color: '#ff6699', maxWidth: '400px'}}>{entry.synopsis?.slice(0, 250)}
                                         {entry.synopsis?.length > 250 ? '...' : ''}</p>
                                 <p>Status: {entry.status}</p>
                                 <p>Rating: {entry.rating ?? 'N/A'}</p>
@@ -95,9 +86,10 @@ export default function MangaList() {
                         style={{ maxWidth: '200px', flexShrink: 0 }}
                     />
 
-                    <p style={{ color: '#ff6699', maxWidth: '400px', marginTop: 0}}>
-                        {editingManga.synopsis?.slice(0, 1000)}
-                        {editingManga.synopsis?.length > 1000 ? '...' : ''}
+                    <p style={{ color: '#ff6699', maxWidth: '400px', marginTop: 0 }}>
+                        {editingManga.synopsis && editingManga.synopsis.trim()
+                            ? editingManga.synopsis.slice(0, 1000) + (editingManga.synopsis.length > 1000 ? '...' : '')
+                            : 'No synopsis available.'}
                     </p>
                     </div>
 

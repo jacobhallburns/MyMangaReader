@@ -10,6 +10,9 @@ export default function MangaSearch() {
     const [editingManga, setEditingManga] = useState(null);
     const [tempRating, setTempRating] = useState('');
     const [tempStatus, setTempStatus] = useState('Completed');
+    // for madal when editing manga, tracks added manga's details (status, rating,...)
+    const [addedMangaMap, setAddedMangaMap] = useState(new Map());
+
 
     useEffect(() => {
         const fetchAddedManga = async () => {
@@ -18,8 +21,11 @@ export default function MangaSearch() {
                 const data = await res.json();
 
                 // Gets ids from kitsu and saves it in this set
-                const ids = new Set(data.map(entry => entry.kitsuId));
-                setAddedIds(ids)
+                setAddedIds(new Set(data.map(entry => entry.kitsuId)));
+                // Builds map to save manga entry details
+                const map = new Map();
+                data.forEach(entry => {map.set(entry.kitsuId, entry);});
+                setAddedMangaMap(map)
             } catch (err) {
                 console.error(`Failed to load existing mnanga.`, err);
             }
@@ -50,15 +56,51 @@ export default function MangaSearch() {
 
     // Adds chosen manga to db
     const addManga = async () => {
-        const attributes = editingManga.attributes;
-        const payload = {
-            kitsuId: editingManga.id,
-            title: attributes.titles.en_jp || attributes.slug,
-            coverImage: attributes.posterImage?.small || '',
-            synopsis: attributes.synopsis || '',
-            status: tempStatus,
-            rating: tempRating
-        };
+        let payload;
+
+        if (editingManga.attributes) {
+            // Adding new manga from Kitsu API
+            const attributes = editingManga.attributes;
+            payload = {
+                kitsuId: editingManga.id,
+                title: attributes.titles.en_jp || attributes.slug,
+                coverImage: attributes.posterImage?.small || '',
+                synopsis: attributes.synopsis || '',
+                status: tempStatus,
+                rating: tempRating
+            };
+        } else {
+            // Editing existing manga from DB → PATCH instead of POST
+            try {
+                await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga/${editingManga._id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: tempStatus,
+                        rating: tempRating
+                    })
+                });
+
+                // Update addedMangaMap to reflect changes
+                setAddedMangaMap(prevMap => {
+                    const newMap = new Map(prevMap);
+                    newMap.set(editingManga.kitsuId, {
+                        ...editingManga,
+                        status: tempStatus,
+                        rating: tempRating
+                    });
+                    return newMap;
+                });
+            } catch (err) {
+                alert(`Error updating manga: ${err.message}`);
+            }
+
+            // Reset variables
+            setEditingManga(null);
+            setTempRating(null);
+            setTempStatus('Completed');
+            return; // Exit the function here → do not run POST
+        }
 
         try {
             // Sends request to backend to add new manga
@@ -69,15 +111,26 @@ export default function MangaSearch() {
             });
 
             const savedManga = await response.json();
+
+            // Update addedIds
             setAddedIds(prev => new Set(prev).add(editingManga.id));
+
+            // Update addedMangaMap so Edit button works immediately
+            setAddedMangaMap(prevMap => {
+                const newMap = new Map(prevMap);
+                newMap.set(savedManga.kitsuId, savedManga);
+                return newMap;
+            });
         } catch (err) {
             alert(`Error saving manga: ${err.message}`);
         }
-        // resets variables
+
+        // Reset variables
         setEditingManga(null);
         setTempRating(null);
         setTempStatus('Completed');
     };
+
 
     // Renders UI
     return (
@@ -137,12 +190,24 @@ export default function MangaSearch() {
                                 {attributes.synopsis?.slice(0, 250)}
                                 {attributes.synopsis?.length > 250 ? '...' : ''}
                             </p>
-                            <button onClick={() => openAddModal(manga)}
-                                disabled={isAdded}
-                                style={{ backgroundColor: isAdded ? '#00cc66' : undefined}}
+                            <button onClick={() => {if (isAdded) {
+                                // Opens Edit modal with existing manga entry
+                                const existing = addedMangaMap.get(manga.id);
+                                if (existing) {
+                                    setEditingManga(existing);
+                                    setTempRating(existing.rating ?? 'null');
+                                    setTempStatus(existing.status || 'Completed');
+                                }
+                                } else {
+                                // Opens Add modal if manga doesnt exist in list
+                                openAddModal(manga);
+                                }
+                            }}
+                            disabled={false}
+                            style={{ backgroundColor: isAdded ? '#00cc66' : undefined }}
                             >
-                                {isAdded ? 'Already Added' : 'Add to My List'}
-                                </button>
+                            {isAdded ? 'Edit' : 'Add to My List'}
+                            </button>
                         </li>
                     );
                 })}
@@ -155,7 +220,7 @@ export default function MangaSearch() {
                 zIndex: 9999
             }}>
                 <div style={{ background: 'white', padding: '2rem', color: '#cc0000', textAlign: 'left', border: '2px solid #00cc66'}}>
-                    <h2>{editingManga.attributes.titles.en_jp}</h2>
+                    <h2>{editingManga.attributes ? editingManga.attributes.titles.en_jp : editingManga.title}</h2>
 
                     <div style={{
                         display: 'flex',
@@ -164,8 +229,8 @@ export default function MangaSearch() {
                         marginBottom: '1rem'
                     }}>
                         <img
-                            src={editingManga.attributes.posterImage?.small}
-                            alt={editingManga.attributes.titles.en_jp}
+                            src={editingManga.attributes ? editingManga.attributes.posterImage?.small : editingManga.coverImage}
+                            alt={editingManga.attributes ? editingManga.attributes.titles.en_jp : editingManga.title}
                             style={{ maxWidth: '200px', flexShrink: 0 }}
                         />
 
@@ -175,8 +240,9 @@ export default function MangaSearch() {
                             marginTop: 0,
                             lineHeight: '1.4'
                         }}>
-                            {editingManga.attributes.synopsis?.slice(0, 1000)}
-                            {editingManga.attributes.synopsis?.length > 1000 ? '...' : ''}
+                            {editingManga.synopsis
+                                ? editingManga.synopsis.slice(0, 1000) + (editingManga.synopsis.length > 1000 ? '...' : '')
+                                : 'No synopsis available.'}
                         </p>
                     </div>
 
@@ -212,6 +278,38 @@ export default function MangaSearch() {
                     </button>
 
                     <button onClick={() => setEditingManga(null)} style={{ marginLeft: '1rem' }}>Cancel</button>
+                    {!editingManga.attributes && (
+                        <button onClick={async () => {
+                            try {
+                                await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga/${editingManga._id}`, {
+                                    method: 'DELETE'
+                                });
+
+                                // Updates addedIds and addedMangaMap
+                                setAddedIds(prev => {
+                                    const newSet = new Set(prev);
+                                    newSet.delete(editingManga.kitsuId);
+                                    return newSet;
+                                });
+                                setAddedMangaMap(prevMap => {
+                                    const newMap = new Map(prevMap);
+                                    newMap.delete(editingManga.kitsuId);
+                                    return newMap;
+                                });
+                            } catch (err) {
+                                alert(`Error deleting manga: ${err.message}`);
+                            }
+
+                            // Close modal
+                            setEditingManga(null);
+                            setTempRating(null);
+                            setTempStatus('Completed');
+                        }}
+                        style={{ marginLeft: '1rem' }}
+                    >
+                        Remove from My List
+                    </button>
+                )}
                 </div>
             </div>
         )}
