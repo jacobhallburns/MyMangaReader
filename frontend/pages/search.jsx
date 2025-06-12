@@ -12,6 +12,9 @@ export default function MangaSearch() {
     const [tempStatus, setTempStatus] = useState('Completed');
     // for madal when editing manga, tracks added manga's details (status, rating,...)
     const [addedMangaMap, setAddedMangaMap] = useState(new Map());
+    // for loading more manga search results
+    const pageSize = 10
+    const [offset, setOffset] = useState(0);
 
 
     useEffect(() => {
@@ -40,10 +43,16 @@ export default function MangaSearch() {
         if (!query.trim()) return;
 
         setLoading(true);
-        const response = await fetch(`https://kitsu.io/api/edge/manga?filter[text]=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        setResults(data.data);
-        setLoading(false);
+        try { 
+            const response = await fetch(`https://kitsu.io/api/edge/manga?filter[text]=${encodeURIComponent(query)}&page[limit]=${pageSize}&page[offset]=0`);
+            const data = await response.json();
+            setResults(data.data);
+            setOffset(20);
+        } catch (err) {
+            alert(`Error searching manga: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Opens modals to Add selected manga to db
@@ -131,6 +140,21 @@ export default function MangaSearch() {
         setTempStatus('Completed');
     };
 
+    // loads more manga
+    const loadMore = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`https://kitsu.io/api/edge/manga?filter[text]=${encodeURIComponent(query)}&page[limit]=${pageSize}&page[offset]=${offset}`);
+            const data = await response.json();
+            setResults(prev => [...prev, ...data.data]);
+            setOffset(prevOffset => prevOffset + pageSize);  // Increments the offset
+        } catch (err) {
+            alert('Error loading manga: ${err.message}');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     // Renders UI
     return (
@@ -164,7 +188,7 @@ export default function MangaSearch() {
 
             {loading && <p>Searching...</p>}
 
-            {results.length > 0 && (
+            {results.length > 0 && ( <>
                 <ul style={{ listStyle: 'none', padding: 0 }}>
                     {results.map((manga) => {
                         const attributes = manga.attributes;
@@ -212,6 +236,11 @@ export default function MangaSearch() {
                     );
                 })}
             </ul>
+            {results.length > 0 && (
+                <button onClick={loadMore} style={{ marginTop: '1rem' }}>
+                    Load More Manga </button>
+            )}
+        </>
         )}
         {editingManga && (
             <div style={{
