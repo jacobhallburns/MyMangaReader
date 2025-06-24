@@ -15,7 +15,7 @@ export default function MangaSearch() {
     // for loading more manga search results
     const pageSize = 10
     const [offset, setOffset] = useState(0);
-
+    const [moreManga, setMoreManga] = useState(true)
 
     useEffect(() => {
         const fetchAddedManga = async () => {
@@ -48,6 +48,7 @@ export default function MangaSearch() {
             const data = await response.json();
             setResults(data.data);
             setOffset(20);
+            setMoreManga(true);
         } catch (err) {
             alert(`Error searching manga: ${err.message}`);
         } finally {
@@ -148,6 +149,10 @@ export default function MangaSearch() {
             const data = await response.json();
             setResults(prev => [...prev, ...data.data]);
             setOffset(prevOffset => prevOffset + pageSize);  // Increments the offset
+
+            if (data.data.length < pageSize) {
+                setMoreManga(false);
+            }
         } catch (err) {
             alert('Error loading manga: ${err.message}');
         } finally {
@@ -159,7 +164,7 @@ export default function MangaSearch() {
     // Renders UI
     return (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem', 
-            alignItems: 'flex-start', minHeight: '1000vh', background: '#f8f8f8'
+            alignItems: 'flex-start', background: '#f8f8f8'
         }}>
             <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center',
                 borderLeft: '2px solid #00cc66', borderRight: '2px solid #00cc66',
@@ -236,7 +241,7 @@ export default function MangaSearch() {
                     );
                 })}
             </ul>
-            {results.length > 0 && (
+            {results.length > 0 && moreManga && (
                 <button onClick={loadMore} style={{ marginTop: '1rem' }}>
                     Load More Manga </button>
             )}
@@ -244,9 +249,8 @@ export default function MangaSearch() {
         )}
         {editingManga && (
             <div style={{
-                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-                backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-                zIndex: 9999
+                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', 
+                display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999
             }}>
                 <div style={{ background: 'white', padding: '2rem', color: '#cc0000', textAlign: 'left', border: '2px solid #00cc66'}}>
                     <h2>{editingManga.attributes ? editingManga.attributes.titles.en_jp : editingManga.title}</h2>
@@ -269,8 +273,9 @@ export default function MangaSearch() {
                             marginTop: 0,
                             lineHeight: '1.4'
                         }}>
-                            {editingManga.synopsis
-                                ? editingManga.synopsis.slice(0, 1000) + (editingManga.synopsis.length > 1000 ? '...' : '')
+                            {(editingManga.attributes?.synopsis || editingManga.synopsis)
+                                ? (editingManga.attributes?.synopsis || editingManga.synopsis).slice(0, 1000)
+                                    + ((editingManga.attributes?.synopsis || editingManga.synopsis).length > 1000 ? '...' : '')
                                 : 'No synopsis available.'}
                         </p>
                     </div>
