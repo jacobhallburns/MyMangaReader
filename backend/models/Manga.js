@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 const MangaSchema = new mongoose.Schema({
     kitsuId: String,      // ID from Kitsu
     title: String,        // Title of manga
+    genres: [String],
     coverImage: String,   // URL to cover image of manga
     // Saves user reading status for each manga
     status: {
