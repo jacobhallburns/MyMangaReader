@@ -8,6 +8,7 @@ export default function RecomendationPage(){
                 paddingLeft: '6rem', paddingRight: '6rem', minHeight: '100vh'
              }}>
                   <h1>Recomendation Page</h1>
+                  
             </div>
       </div>
    );
