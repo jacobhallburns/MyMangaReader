@@ -1,4 +1,4 @@
-export default function RecomendationPage(){
+export default function RecommendationPage(){
    return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem', 
             alignItems: 'flex-start', minHeight: '100vh', background: '#f8f8f8'
@@ -7,7 +7,7 @@ export default function RecomendationPage(){
                 borderLeft: '2px solid #00cc66', borderRight: '2px solid #00cc66',
                 paddingLeft: '6rem', paddingRight: '6rem', minHeight: '100vh'
              }}>
-                  <h1>Recomendation Page</h1>
+                  <h1>Recommendation Page</h1>
                   
             </div>
       </div>

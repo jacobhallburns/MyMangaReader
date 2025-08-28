@@ -38,7 +38,7 @@ export default function MangaList() {
                 paddingLeft: '6rem', paddingRight: '6rem', minHeight: '100vh'
              }}>
             <h1>My Manga List</h1>
-            <h3><Link href="/recomendation" style={{ display: 'inline-block', marginBottom: '1rem'}}>Recommendation Page</Link></h3> 
+            <h3><Link href="/recommendation" style={{ display: 'inline-block', marginBottom: '1rem'}}>Recommendation Page</Link></h3> 
             <h3><a href="/search" style={{ display: 'inline-block', marginBottom: '1rem' }}>Add manga from Kitsu search</a></h3>
             {manga.length === 0 ? <p>No manga found. Go to the search page to add some!</p> : (
                 <ul style={{ listStyle: 'none', padding: 0 }}>
