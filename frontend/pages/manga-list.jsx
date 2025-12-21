@@ -11,19 +11,44 @@ export default function MangaList() {
     const [tempRating, setTempRating] = useState(null);
 
     useEffect(() => {
-        // Fetch manga from backend api
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`)
-            .then(res => res.json())    // Parse responce as json
-            .then(data => {
-                setManga(data);
-                setLoading(false);      // Stop showing loading message
-        })
-        .catch(err => {
-            console.error("Error fetching manga:", err);
-            setLoading(false);          // Stops loading message 
-        });
-    }, []);                             // Empty array means this only runs on page load
-    
+    let cancelled = false;
+
+    const fetchManga = async () => {
+        try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`);
+
+        // If DB isn't ready yet, keep loading and retry
+        if (res.status === 503) {
+            if (!cancelled) {
+            setTimeout(fetchManga, 300);
+            }
+            return;
+        }
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+            console.error("Backend error:", data);
+            if (!cancelled) setManga([]);
+            return;
+        }
+
+        if (!cancelled) setManga(Array.isArray(data) ? data : []);
+        } catch (err) {
+        console.error("Fetch failed:", err);
+        // Backend not reachable yet -> keep loading and retry
+        if (!cancelled) {
+            setTimeout(fetchManga, 500);
+        }
+        return;
+        }
+        if (!cancelled) setLoading(false);
+    };
+    fetchManga();
+    return () => {
+        cancelled = true;
+    };
+    }, []);
+
 
     // Shows loading message while its loading
     if (loading) return <p>Loading...</p>;
@@ -37,9 +62,24 @@ export default function MangaList() {
                 borderLeft: '2px solid #00cc66', borderRight: '2px solid #00cc66',
                 paddingLeft: '6rem', paddingRight: '6rem', minHeight: '100vh'
              }}>
-            <h1>My Manga List</h1>
-            <h3><Link href="/recommendation" style={{ display: 'inline-block', marginBottom: '1rem'}}>Recommendation Page</Link></h3> 
-            <h3><a href="/search" style={{ display: 'inline-block', marginBottom: '1rem' }}>Add manga from Kitsu search</a></h3>
+            <header
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                padding: '1rem 0',
+                borderBottom: '2px solid #00cc66',
+                marginBottom: '1.25rem',
+            }}
+            >
+            <h1 style={{ margin: 0 }}>My Manga List</h1>
+
+            <nav style={{ display: 'flex', gap: '2rem' }}>
+                <Link href="/recommendation">Recommendation Page</Link>
+                <Link href="/search">Add Manga</Link>
+            </nav>
+            </header>
             {manga.length === 0 ? <p>No manga found. Go to the search page to add some!</p> : (
                 <ul style={{ listStyle: 'none', padding: 0 }}>
                     {manga.map((entry) => (

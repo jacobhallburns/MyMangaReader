@@ -1,11 +1,22 @@
 import express from 'express';
 import Manga from '../models/Manga.js';
+import mongoose from 'mongoose';
 const router = express.Router();
 
 // Gets all manga from db
 router.get('/', async (req, res) => {
+  try {
+    // 1 = connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected yet' });
+    }
+
     const manga = await Manga.find();
     res.json(manga);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Adds a new manga to db
