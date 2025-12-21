@@ -71,6 +71,11 @@ export default function MangaList() {
                 padding: '1rem 0',
                 borderBottom: '2px solid #00cc66',
                 marginBottom: '1.25rem',
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                background: '#f8f8f8',
+
             }}
             >
             <h1 style={{ margin: 0 }}>My Manga List</h1>
