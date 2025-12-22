@@ -1,69 +1,103 @@
-import { useEffect, useState } from 'react';
+import {useEffect, useMemo, useState } from 'react';
 import Link from "next/link";
 
 // Gets user saved manga list from backend
 export default function MangaList() {
-  const [manga, setManga] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const [manga, setManga] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  // for modal when editing manga
-  const [editingManga, setEditingManga] = useState(null);
-  const [tempStatus, setTempStatus] = useState('Completed');
-  const [tempRating, setTempRating] = useState(null);
+    // search / filter / sort
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [sortBy, setSortBy] = useState('Updated'); // Updated | TitleAZ | TitleZA | RatingHigh | RatingLow
 
-  useEffect(() => {
-    let cancelled = false;
+
+    // for modal when editing manga
+    const [editingManga, setEditingManga] = useState(null);
+    const [tempStatus, setTempStatus] = useState('Completed');
+    const [tempRating, setTempRating] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
 
     const fetchManga = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`);
 
         // DB not ready yet → keep loading and retry
         if (res.status === 503) {
-          if (!cancelled) setTimeout(fetchManga, 300);
-          return;
+            if (!cancelled) setTimeout(fetchManga, 300);
+            return;
         }
 
         const data = await res.json().catch(() => null);
 
         if (!res.ok) {
-          console.error("Backend error:", data);
-          if (!cancelled) setManga([]);
-          return;
+            console.error("Backend error:", data);
+            if (!cancelled) setManga([]);
+            return;
         }
 
         if (!cancelled) setManga(Array.isArray(data) ? data : []);
-      } catch (err) {
+    } catch (err) {
         console.error("Fetch failed:", err);
         if (!cancelled) setTimeout(fetchManga, 500);
         return;
-      }
+    }
 
-      if (!cancelled) setLoading(false);
+        if (!cancelled) setLoading(false);
     };
 
     fetchManga();
     return () => (cancelled = true);
-  }, []);
+}, []);
 
-  if (loading) return <p>Loading...</p>;
+// Build a filtered + sorted view (doesn't change original array)
+    const visibleManga = useMemo(() => {
+        const q = searchTerm.trim().toLowerCase();
+    let list = manga.filter((m) => {
+        const statusOk = statusFilter === 'All' || (m.status || '').toLowerCase() === statusFilter.toLowerCase();
+        if (!q) return statusOk;
+            const title = (m.title || '').toLowerCase();
+        const synopsis = (m.synopsis || '').toLowerCase();
+        const textOk = title.includes(q) || synopsis.includes(q);
+        return statusOk && textOk;
+    });
 
-  return (
-    <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '2rem',
-        minHeight: '100vh',
-        background: '#f8f8f8',
-      }}>
-      <div style={{
-          maxWidth: '700px',
-          width: '100%',
-          borderLeft: '2px solid #00cc66',
-          borderRight: '2px solid #00cc66',
-          paddingLeft: '4rem',
-          paddingRight: '4rem',
-          minHeight: '100vh',
+    // sorting
+    if (sortBy === 'TitleAZ') {
+      list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else if (sortBy === 'TitleZA') {
+      list.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+    } else if (sortBy === 'RatingHigh') {
+      list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    } else if (sortBy === 'RatingLow') {
+      list.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
+    }
+    // "Updated" keeps original order
+
+    return list;
+  }, [manga, searchTerm, statusFilter, sortBy]);
+
+    if (loading) return <p>Loading...</p>;
+
+    return (
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            paddingLeft: '2rem',
+            paddingRight: '2rem',
+            minHeight: '100vh',
+            background: '#f8f8f8',
+        }}>
+        <div style={{
+            maxWidth: '1000px',
+            width: '100%',
+            borderLeft: '2px solid #00cc66',
+            borderRight: '2px solid #00cc66',
+            paddingLeft: '2rem',
+            paddingRight: '2rem',
+            minHeight: '100vh',
         }}>
 
         {/* HEADER */}
@@ -85,18 +119,90 @@ export default function MangaList() {
             padding: '1rem 0',
             borderBottom: '2px solid #00cc66',
             marginBottom: '1.5rem',            
-          }}>
-          <h1 style={{ margin: 1 }}>My Manga List</h1>
+        }}>
+        <h1 style={{ margin: 0 }}>My Manga List</h1>
 
-          <nav style={{ display: 'flex', gap: '2rem' }}>
-            <Link href="/recommendation">Recommendation Page</Link>
-            <Link href="/search">Add Manga</Link>
-          </nav>
-        </header> </div>
+        <nav style={{ display: 'flex', gap: '3rem' }}>
+        <Link
+        href="/recommendation"
+        style={{
+        fontWeight: 600,
+        fontSize: '1.2rem',
+        }}
+    >Recommendation Page</Link>
+
+    <Link
+        href="/search"
+        style={{
+        fontWeight: 600,
+        fontSize: '1.2rem',
+        }}
+    >Add Manga</Link></nav>
+    </header> 
+    
+    {/* SEARCH + FILTER BAR */}
+        <div style={{
+        display: 'flex',
+        gap: '1rem',
+        alignItems: 'center',
+        paddingBottom: '1rem',
+        }}> <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search List..."
+            style={{
+            flex: 1,
+            padding: '0.7rem 0.9rem',
+            borderRadius: '12px',
+            border: '2px solid #00cc66',
+            outline: 'none',
+            background: 'white',
+            color: '#ff6699'
+            }} className = "search-input"
+        />
+
+        <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+            padding: '0.7rem 0.9rem',
+            borderRadius: '12px',
+            border: '2px solid #00cc66',
+            background: 'white',
+            color: '#ff6699',
+            }}
+        >
+            <option value="All">All Status</option>
+            <option value="Completed">Completed</option>
+            <option value="Reading">Reading</option>
+            <option value="Plan-to-read">Plan to Read</option>
+        </select>
+
+        <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+            padding: '0.7rem 0.9rem',
+            borderRadius: '12px',
+            border: '2px solid #00cc66',
+            background: 'white',
+            color: '#ff6699'
+            }}
+        >
+            <option value="Updated">Sort: Default</option>
+            <option value="TitleAZ">Title: A → Z</option>
+            <option value="TitleZA">Title: Z → A</option>
+            <option value="RatingHigh">Rating: High → Low</option>
+            <option value="RatingLow">Rating: Low → High</option>
+        </select>
+        </div>
+    </div>
 
         {/* CONTENT */}
         {manga.length === 0 ? (
           <p>No manga found. Go to the search page to add some!</p>
+        ) : visibleManga.length === 0 ? (
+          <p>No results. Try a different search or filter.</p>
         ) : (
           <ul style={{
               listStyle: 'none',
@@ -105,18 +211,16 @@ export default function MangaList() {
               display: 'grid',
               gap: '1.5rem',
             }}>
-            {manga.map((entry) => (
-              <li
-                key={entry._id}
-                style={{
-                  background: '#ffffff',
-                  border: '2px solid #00cc66',
-                  borderRadius: '16px',
-                  padding: '1.5rem',
-                  boxShadow: '0 10px 28px rgba(0,0,0,0.08)',
+            {visibleManga.map((entry) => (
+              <li key={entry._id} style={{
+                    background: '#ffffff',
+                    border: '2px solid #00cc66',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    boxShadow: '0 10px 28px rgba(0,0,0,0.08)',
                 }}>
                 <h2 style={{ marginTop: 0, marginBottom: '1rem', color: '#cc0000' }}>
-                  {entry.title}
+                    {entry.title}
                 </h2>
 
                 <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>

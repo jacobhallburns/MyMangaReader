@@ -37,3 +37,7 @@ input, select {
     background-color: #f2a7c2;
     color: white;
 }
+
+.search-input::placeholder {
+  color: #ff6699;
+}
