@@ -5,6 +5,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import mangaRoutes from '../routes/manga.js';
+// 1. IMPORT THE NEW ROUTE
+import recommendationsRoutes from '../routes/recommendations.js'; 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +22,8 @@ if (!dbUrl) {
 
 // Routes
 app.use('/api/manga', mangaRoutes);
+// 2. USE THE NEW ROUTE
+app.use('/api/recommendations', recommendationsRoutes); 
 
 app.get('/', (req, res) => {
   res.send('Backend is working!');

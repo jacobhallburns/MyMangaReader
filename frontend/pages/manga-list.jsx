@@ -21,8 +21,10 @@ export default function MangaList() {
         let cancelled = false;
 
     const fetchManga = async () => {
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga`);
+    try {
+        // Use the env variable, OR fallback to localhost:5000 if it's missing
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        const res = await fetch(`${backendUrl}/api/manga`);
 
         // DB not ready yet → keep loading and retry
         if (res.status === 503) {
