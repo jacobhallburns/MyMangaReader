@@ -174,7 +174,7 @@ export default function Recommendations() {
                     {/* NAVIGATION BUTTONS */}
                     <nav style={{ display: 'flex', gap: '3rem' }}>
                         {/* 1. Link back to Manga List (Home) */}
-                        <Link href="/" style={{ 
+                        <Link href="/manga-list" style={{ 
                             fontWeight: 600, 
                             fontSize: '1.2rem', 
                             color: 'black', 
