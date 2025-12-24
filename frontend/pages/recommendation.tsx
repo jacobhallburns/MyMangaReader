@@ -56,7 +56,7 @@ const RecCard = ({ manga, badgeText, badgeColor }: RecCardProps) => {
             background: '#ffffff',
             border: '2px solid #00cc66',
             borderRadius: '16px',
-            padding: '1.5rem',
+            padding: '1rem',
             boxShadow: '0 10px 28px rgba(0,0,0,0.08)',
             display: 'flex',
             flexDirection: 'column',
@@ -81,7 +81,7 @@ const RecCard = ({ manga, badgeText, badgeColor }: RecCardProps) => {
                     {badgeText}
                 </span>
 
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
                     {manga.coverImage && (
                         <img
                             src={manga.coverImage}
@@ -185,10 +185,10 @@ export default function Recommendations() {
                 <header style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 0' }}>
                     <h1 style={{ margin: 0 }}>Find New Manga</h1>
                     <nav style={{ display: 'flex', gap: '3rem' }}>
-                        <Link href="/manga-list" style={{ fontWeight: 600, fontSize: '1.2rem', color: 'black', textDecoration: 'none' }}>
+                        <Link href="/manga-list" style={{ fontWeight: 600, fontSize: '1.2rem', color: '#cc0000', textDecoration: 'none' }}>
                             Manga List
                         </Link>
-                        <Link href="/search" style={{ fontWeight: 600, fontSize: '1.2rem', color: 'black', textDecoration: 'none' }}>
+                        <Link href="/search" style={{ fontWeight: 600, fontSize: '1.2rem', color: '#cc0000', textDecoration: 'none' }}>
                             Add Manga
                         </Link>
                     </nav>
@@ -248,7 +248,8 @@ export default function Recommendations() {
                             padding: 0, 
                             display: 'grid', 
                             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                            gap: '3rem'
+                            rowGap: '3.5rem',
+                            columnGap: '1rem',
                         }}>
                             {recs.basedOnTaste.map(m => (
                                 <RecCard 
@@ -269,7 +270,9 @@ export default function Recommendations() {
                     </h2>
                     <ul style={{
                         listStyle: 'none', padding: 0, display: 'grid', 
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '3rem'
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+                        rowGap: '3.5rem',
+                        columnGap: '1.3rem',
                     }}>
                         {recs.trending.map(m => (
                             <RecCard key={m.kitsuId} manga={m} badgeText="Trending Now" badgeColor="#00cc66" />
