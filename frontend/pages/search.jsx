@@ -69,7 +69,7 @@ export default function MangaSearch() {
         const data = await response.json();
 
         setResults(data.data || []);
-        setOffset(pageSize);
+        setOffset(20);
         setMoreManga(true);
         } catch (err) {
         alert(`Error searching manga: ${err.message}`);
