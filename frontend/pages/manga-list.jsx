@@ -301,40 +301,217 @@ export default function MangaList() {
           </ul>
         )}
 
-        {/* EDIT MODAL */}
         {editingManga && (
-          <div style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 9999,
-            }}>
-            <div style={{
-                background: 'white',
-                padding: '2rem',
-                color: '#cc0000',
-                textAlign: 'left',
+  <div
+    onClick={() => setEditingManga(null)}
+    style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+      padding: '2rem',
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: '100%',
+        maxWidth: '760px',
+        background: '#ffffff',
+        borderRadius: '18px',
+        border: '2px solid #00cc66',
+        boxShadow: '0 18px 60px rgba(0,0,0,0.25)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Top bar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '1rem 1.25rem',
+          background: '#f8f8f8',
+          borderBottom: '2px solid #00cc66',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <h2 style={{ margin: 0, color: '#cc0000', fontSize: '1.35rem', lineHeight: 1.2 }}>
+            {editingManga.title}
+          </h2>
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                padding: '0.35rem 0.7rem',
+                borderRadius: '999px',
                 border: '2px solid #00cc66',
-                maxWidth: '600px',
-                width: '100%',
+                color: '#00aa55',
+                fontWeight: 700,
+                fontSize: '0.95rem',
               }}
             >
-              <h2>{editingManga.title}</h2>
+              Status: {editingManga.status || 'N/A'}
+            </span>
+            <span
+              style={{
+                padding: '0.35rem 0.7rem',
+                borderRadius: '999px',
+                border: '2px solid #00cc66',
+                color: '#00aa55',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+              }}
+            >
+              Rating:{' '}
+              {editingManga.rating != null ? (
+                <>
+                  {editingManga.rating}{' '}
+                  <span style={{ color: '#ffcc00', fontSize: '1.2em' }}>★</span>
+                </>
+              ) : (
+                'N/A'
+              )}
+            </span>
+          </div>
+        </div>
 
-              <label>Status: </label>
-              <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)}>
+        <button
+          onClick={() => setEditingManga(null)}
+          style={{
+                 border: '2px solid #00cc66',
+                background: 'white',
+                borderRadius: '12px',
+                padding: '0.2rem 0.2rem',   
+                cursor: 'pointer',
+                color: '#cc0000',
+
+                fontSize: '1.6rem',
+                fontWeight: 1400,
+                lineHeight: 0.9,
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Body */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '220px 1fr',
+          gap: '1.25rem',
+          padding: '1.25rem',
+        }}
+      >
+        {/* Cover */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          {editingManga.coverImage ? (
+            <img
+              src={editingManga.coverImage}
+              alt={editingManga.title}
+              style={{
+                width: '200px',
+                height: '300px',
+                objectFit: 'cover',
+                borderRadius: '14px',
+                border: '2px solid #00cc66',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: '200px',
+                height: '300px',
+                borderRadius: '14px',
+                border: '2px dashed #00cc66',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#00aa55',
+                fontWeight: 800,
+              }}
+            >
+              No Cover
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div style={{ minWidth: 0 }}>
+          <p
+            style={{
+              marginTop: 0,
+              color: '#ff6699',
+              lineHeight: 1.55,
+              marginBottom: '1rem',
+              maxHeight: '180px',
+              overflow: 'auto',
+              paddingRight: '0.25rem',
+            }}
+          >
+            {editingManga.synopsis && editingManga.synopsis.trim()
+              ? editingManga.synopsis
+              : 'No synopsis available.'}
+          </p>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.9rem',
+              alignItems: 'center',
+              marginBottom: '1.25rem',
+            }}
+          >
+            <div>
+              <label style={{ display: 'block', fontWeight: 900, marginBottom: '0.35rem' }}>
+                Status
+              </label>
+              <select
+                value={tempStatus}
+                onChange={(e) => setTempStatus(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.7rem 0.85rem',
+                  borderRadius: '12px',
+                  border: '2px solid #00cc66',
+                  background: 'white',
+                  color: '#ff6699',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
+              >
                 <option value="Completed">Completed</option>
                 <option value="Reading">Reading</option>
                 <option value="Plan-to-read">Plan to Read</option>
               </select>
-              <br /><br />
+            </div>
 
-              <label>Rating (1–10): </label>
-              <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))}>
-                <option value={null}>N/A</option>
+            <div>
+              <label style={{ display: 'block', fontWeight: 900, marginBottom: '0.35rem' }}>
+                Rating (1–10)
+              </label>
+              <select
+                value={tempRating}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setTempRating(v === 'null' ? 'null' : Number(v));
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.7rem 0.85rem',
+                  borderRadius: '12px',
+                  border: '2px solid #00cc66',
+                  background: 'white',
+                  color: '#ff6699',
+                  fontWeight: 700,
+                  outline: 'none',
+                }}
+              >
+                <option value="null">N/A</option>
                 <option value="10">10 – Masterpiece</option>
                 <option value="9">9 - Amazing</option>
                 <option value="8">8 - Great</option>
@@ -346,40 +523,96 @@ export default function MangaList() {
                 <option value="2">2 - Really Bad</option>
                 <option value="1">1 – Awful</option>
               </select>
-              <br /><br />
+            </div>
+          </div>
 
-              <button onClick={async () => {
-                  await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/manga/${editingManga._id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        rating: tempRating === 'null' ? null : tempRating,
-                        status: tempStatus,
-                      }),
-                    }
-                  );
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+
+
+            <button
+              onClick={async () => {
+                try {
+                  const backendUrl =
+                    process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
+                  await fetch(`${backendUrl}/api/manga/${editingManga._id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      rating: tempRating === 'null' ? null : tempRating,
+                      status: tempStatus,
+                    }),
+                  });
 
                   setManga((prev) =>
                     prev.map((m) =>
                       m._id === editingManga._id
-                        ? { ...m, status: tempStatus, rating: tempRating }
+                        ? {
+                            ...m,
+                            status: tempStatus,
+                            rating: tempRating === 'null' ? null : tempRating,
+                          }
                         : m
                     )
                   );
-
+                } catch (err) {
+                  alert(`Failed to update manga: ${err.message}`);
+                } finally {
                   setEditingManga(null);
-                }}
-              >
-                Save
-              </button>
+                }
+              }}
+              style={{
+                padding: '0.65rem 1.1rem',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#00cc66',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 900,
+              }}
+            >
+              Save
+            </button>
 
-              <button onClick={() => setEditingManga(null)} style={{ marginLeft: '1rem' }}>
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={async () => {
+                try {
+                  const backendUrl =
+                    process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
+                  await fetch(`${backendUrl}/api/manga/${editingManga._id}`, {
+                    method: 'DELETE',
+                  });
+
+                  setManga((prev) => prev.filter((m) => m._id !== editingManga._id));
+                } catch (err) {
+                  alert(`Failed to remove manga: ${err.message}`);
+                } finally {
+                  setEditingManga(null);
+                  setTempRating('null');
+                  setTempStatus('Completed');
+                }
+              }}
+              style={{
+                padding: '0.65rem 1.1rem',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#cc0000',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 900,
+              }}
+            >
+              Remove from My List
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
-  );
+  </div>
+)}
+</div>
+</div>
+);
 }
