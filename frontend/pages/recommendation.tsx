@@ -18,14 +18,8 @@ interface RecsData {
     trending: Manga[];
 }
 
-interface RecCardProps {
-    manga: Manga;
-    badgeText: string;
-    badgeColor: string;
-}
-
 // --- SUB-COMPONENT ---
-const RecCard = ({ manga, badgeText, badgeColor }: RecCardProps) => {
+const RecCard = ({ manga }: { manga: Manga }) => {
     const [isAdded, setIsAdded] = useState(false);
 
     const handleAdd = async () => {
@@ -67,19 +61,6 @@ const RecCard = ({ manga, badgeText, badgeColor }: RecCardProps) => {
                 <h2 style={{ marginTop: 0, marginBottom: '0.5rem', color: '#cc0000', fontSize: '1.3rem' }}>
                     {manga.title}
                 </h2>
-                
-                <span style={{
-                    display: 'inline-block',
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '8px',
-                    background: badgeColor,
-                    color: 'white',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold',
-                    marginBottom: '1rem'
-                }}>
-                    {badgeText}
-                </span>
 
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
                     {manga.coverImage && (
@@ -140,23 +121,20 @@ export default function Recommendations() {
     // Initial state
     const [recs, setRecs] = useState<RecsData>({ selectedGenre: '', availableGenres: [], basedOnTaste: [], trending: [] });
     const [loading, setLoading] = useState(true);
-    const [filterGenre, setFilterGenre] = useState(''); // Tracks dropdown selection
 
     // Function to fetch data (accepts an optional genre override)
-    const fetchRecs = async (genreOverride?: string) => {
+    const fetchRecs = async () => {
         setLoading(true);
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
             // If user selected a genre, append it to URL
-            const query = genreOverride ? `?genre=${genreOverride}` : '';
             
-            const res = await fetch(`${backendUrl}/api/recommendations${query}`);
+            const res = await fetch(`${backendUrl}/api/recommendations`);
             const data = await res.json();
             
             if (res.ok) {
                 setRecs(data);
                 // If this was the initial load, set the filter to the auto-detected genre
-                if (!genreOverride) setFilterGenre(data.selectedGenre);
             }
         } catch (err) {
             console.error("Failed to load recommendations", err);
@@ -170,12 +148,7 @@ export default function Recommendations() {
         fetchRecs();
     }, []);
 
-    // Handle Dropdown Change
-    const handleGenreChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newGenre = e.target.value;
-        setFilterGenre(newGenre); // Update dropdown UI immediately
-        fetchRecs(newGenre);      // Fetch new data
-    };
+ 
 
     return (
         <div style={{ minHeight: '100vh', background: '#f8f8f8', paddingBottom: '4rem' }}>
@@ -200,66 +173,41 @@ export default function Recommendations() {
                 
                 {/* SECTION 1: PERSONALIZED */}
                 <div style={{ marginBottom: '4rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                        <h2 style={{ 
-                            color: '#333', 
-                            borderLeft: '5px solid #cc0000', 
-                            paddingLeft: '1rem', 
-                            margin: 0
-                        }}>
-                            Because you read...
-                        </h2>
-                        
-                        {/* THE DROPDOWN FILTER */}
-                        <select 
-                            value={filterGenre} 
-                            onChange={handleGenreChange}
-                            style={{
-                                padding: '0.5rem',
-                                fontSize: '1.1rem',
-                                borderRadius: '8px',
-                                border: '2px solid #cc0000',
-                                background: 'white',
-                                color: '#cc0000',
-                                fontWeight: 'bold',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {recs.availableGenres.length > 0 ? (
-                                recs.availableGenres.map(g => (
-                                    <option key={g} value={g}>{g}</option>
-                                ))
-                            ) : (
-                                <option value={recs.selectedGenre}>{recs.selectedGenre}</option>
-                            )}
-                            <option value="Action">Action</option>
-                            <option value="Romance">Romance</option>
-                            <option value="Comedy">Comedy</option>
-                        </select>
-                    </div>
+                <h2 style={{
+                    color: '#333',
+                    borderLeft: '5px solid #cc0000',
+                    paddingLeft: '1rem',
+                    margin: 0
+                }}>
+                    Recommended For You
+                </h2>
+
+                <p style={{
+                    marginTop: '0.4rem',
+                    marginLeft: '1rem',
+                    color: '#666',
+                    fontSize: '0.95rem'
+                }}>
+                    Based on your manga list
+                </p>
                     
-                    {loading ? (
-                         <p style={{color: '#cc0000', fontWeight: 'bold'}}>Finding best {filterGenre} manga for you...</p>
+                    {loading ? (<p style={{color: '#cc0000', fontWeight: 'bold'}}>
+                            Finding recommendations for you...</p>
                     ) : recs.basedOnTaste.length === 0 ? (
-                        <p>No recommendations found for this genre.</p>
+                        <p>No recommendations found yet. Add more manga to your list to improve suggestions.</p>
                     ) : (
                         <ul style={{
-                            listStyle: 'none', 
-                            padding: 0, 
-                            display: 'grid', 
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
-                            rowGap: '3.5rem',
-                            columnGap: '1rem',
-                        }}>
-                            {recs.basedOnTaste.map(m => (
-                                <RecCard 
-                                    key={m.kitsuId} 
-                                    manga={m} 
-                                    badgeText={`Top Rated ${recs.selectedGenre}`} 
-                                    badgeColor="#cc0000" 
-                                />
-                            ))}
-                        </ul>
+                        listStyle: 'none',
+                        padding: 0,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        rowGap: '3.5rem',
+                        columnGap: '1rem',
+                    }}>
+                        {recs.basedOnTaste.map(m => (
+                            <RecCard key={m.kitsuId} manga={m} />
+                        ))}
+                    </ul>
                     )}
                 </div>
 
@@ -275,7 +223,7 @@ export default function Recommendations() {
                         columnGap: '1.3rem',
                     }}>
                         {recs.trending.map(m => (
-                            <RecCard key={m.kitsuId} manga={m} badgeText="Trending Now" badgeColor="#00cc66" />
+                            <RecCard key={m.kitsuId} manga={m} />
                         ))}
                     </ul>
                 </div>

@@ -99,7 +99,11 @@ export default function MangaSearch() {
 
     const addOrUpdateManga = async () => {
         if (editingManga?.attributes) {
-        const attributes = editingManga.attributes;
+            const attributes = editingManga.attributes;
+        
+        const genreResponse = await fetch(`https://kitsu.io/api/edge/manga/${editingManga.id}/categories`);
+        const genreData = await genreResponse.json();
+        const genres = genreData.data.map(g => g.attributes.title);
 
         const payload = {
             kitsuId: editingManga.id,
@@ -108,6 +112,7 @@ export default function MangaSearch() {
             synopsis: attributes.synopsis || '',
             status: tempStatus,
             rating: tempRating,
+            genres: genres
         };
 
         try {

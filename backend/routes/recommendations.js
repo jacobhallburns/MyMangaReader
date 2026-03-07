@@ -46,50 +46,50 @@ router.get('/', async (req, res) => {
 
         // Determine the "Target Genre"
         // If user picked one, use it. Otherwise use their #1 calculated genre. Default to Adventure.
-        const topCalculated = Object.entries(genreScores).sort((a, b) => b[1] - a[1]);
-        const bestUserGenre = topCalculated.length > 0 ? topCalculated[0][0] : 'Adventure';
-        
-        // Ensure the requested genre is formatted correctly (Capitalized) for Kitsu
-        let rawTarget = genre || bestUserGenre;
-        let targetGenre = rawTarget.charAt(0).toUpperCase() + rawTarget.slice(1);
+        const sortedGenres = Object.entries(genreScores).sort((a, b) => b[1] - a[1]);
 
+        // Take top 3 genres
+        let targetGenres;
+
+        if (genre) {
+            targetGenres = [genre];
+        } else if (sortedGenres.length > 0) {
+            targetGenres = sortedGenres.slice(0, 3).map(g => g[0]);
+        } else {
+            targetGenres = ['Adventure'];
+        }
         // --- 2. SMART "DIGGING" FETCH ---
         // We need 10-15 valid recommendations.
         // We will loop until we fill this array, or until we try too many times (safety break).
         
         let recommendations = [];
-        let offset = 0;
-        let attempts = 0;
-        const MAX_ATTEMPTS = 6; // Will dig up to 120 items deep (6 * 20)
-        
-        // We also fetch trending in parallel, but only once
-        const trendingPromise = fetch(`https://kitsu.io/api/edge/trending/manga?limit=20`);
+        let seenIds = new Set();
 
-        while (recommendations.length < 15 && attempts < MAX_ATTEMPTS) {
-            // Fetch a batch of 20
-            const response = await fetch(
-                `https://kitsu.io/api/edge/manga?filter[categories]=${targetGenre}&sort=-averageRating&page[limit]=20&page[offset]=${offset}`
-            );
-            const data = await response.json();
-            
-            if (!data.data || data.data.length === 0) break; // No more results exist in API
+        for (const targetGenre of targetGenres) {
+            let offset = 0;
+            let attempts = 0;
+            const MAX_ATTEMPTS = 3;
+            while (recommendations.length < 20 && attempts < MAX_ATTEMPTS) {
+                const response = await fetch(`https://kitsu.io/api/edge/manga?filter[categories]=${targetGenre}&sort=-averageRating&page[limit]=20&page[offset]=${offset}`);
+                const data = await response.json();
 
-            // Filter this batch
-            const validItems = data.data.filter(item => !myKitsuIds.has(item.id));
-            
-            // Add to our main list
-            recommendations = [...recommendations, ...validItems];
-
-            // If we found enough, stop. If not, increase offset and dig deeper.
-            if (recommendations.length >= 15) break;
-            
-            offset += 20; // Prepare to fetch next page
-            attempts++;
+                if (!data.data || data.data.length === 0) break;
+                for (const item of data.data) {
+                    if (myKitsuIds.has(item.id)) continue;
+                    if (seenIds.has(item.id)) continue;
+                    recommendations.push(item);
+                    seenIds.add(item.id);
+                    if (recommendations.length >= 20) break;
+                }
+                offset += 20;
+                attempts++;
+            }
         }
 
+        const trendingPromise = fetch(`https://kitsu.io/api/edge/trending/manga?limit=20`);
         const trendingRes = await trendingPromise;
         const trendingData = await trendingRes.json();
-
+        
         // Helper to format for Frontend
         const formatManga = (items) => {
             return items
@@ -112,7 +112,7 @@ router.get('/', async (req, res) => {
         const uniqueGenres = [...new Set([...ALL_GENRES, ...userKnownGenres])].sort();
 
         res.json({
-            selectedGenre: targetGenre,
+            selectedGenre: targetGenres.join(", "),
             availableGenres: uniqueGenres, // Now returns full list
             basedOnTaste: formatManga(recommendations),
             trending: formatManga(trendingData.data || [])
