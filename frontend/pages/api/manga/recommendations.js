@@ -1,6 +1,8 @@
 import dbConnect from '../../../lib/dbConnect';
 import Manga from '../../../lib/api/Manga.js';
+import { getAuth } from '@clerk/nextjs/server'; // Import Clerk Auth
 
+// Master list to ensure dropdown is never empty
 const ALL_GENRES = [
     "Action", "Adventure", "Comedy", "Drama", "Sci-Fi", "Space", "Mystery", 
     "Magic", "Supernatural", "Police", "Fantasy", "Sports", "Romance", 
@@ -17,18 +19,35 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
+    // 1. Get the authenticated User ID
+    const { userId } = getAuth(req);
+
+    // If there is no user, we can still show "Global Trending", 
+    // but we can't show personalized "Based on Taste"
+    if (!userId) {
+        // Option A: Return 401 Unauthorized
+        // return res.status(401).json({ error: "Unauthorized" });
+
+        // Option B: Fallback to only showing trending (safer for UX)
+        console.warn("No userId found; returning empty personalized list.");
+    }
+
     // Initialize data structures to prevent crashes if DB fails
     let list = [];
     let myKitsuIds = new Set();
     let genreScores = {};
 
     try {
-        // 1. Attempt Database Connection
+        // 2. Attempt Database Connection
         await dbConnect();
-        list = await Manga.find({});
-        myKitsuIds = new Set(list.map(m => m.kitsuId));
 
-        // 2. Calculate User Taste
+        // 3. ONLY find manga belonging to THIS user
+        if (userId) {
+            list = await Manga.find({ userId });
+            myKitsuIds = new Set(list.map(m => m.kitsuId));
+        }
+
+        // 4. Calculate User Taste based only on their list
         const statusBonus = (s) => {
             const status = s ? s.toLowerCase() : '';
             return status === 'reading' ? 5 : status === 'completed' ? 3 : 0;
@@ -60,7 +79,7 @@ export default async function handler(req, res) {
             targetGenres = ['Adventure']; // Default fallback
         }
 
-        // 3. Fetch from Kitsu (Recommendations + Trending)
+        // 5. Fetch from Kitsu (Recommendations + Trending)
         const [recResults, trendingRes] = await Promise.all([
             Promise.all(targetGenres.map(tg => 
                 fetch(`https://kitsu.io/api/edge/manga?filter[categories]=${tg}&sort=-averageRating&page[limit]=20`)
@@ -81,7 +100,7 @@ export default async function handler(req, res) {
             }));
 
         const recommendations = recResults.flatMap(r => r.data || [])
-            .filter(item => !myKitsuIds.has(item.id))
+            .filter(item => !myKitsuIds.has(item.id)) // Ensure we don't recommend what the user already owns
             .slice(0, 20);
 
         const uniqueGenres = [...new Set([...ALL_GENRES, ...Object.keys(genreScores)])].sort();

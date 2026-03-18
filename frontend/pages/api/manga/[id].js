@@ -1,16 +1,19 @@
 import dbConnect from '../../../lib/dbConnect.js';
 import Manga from '../../../lib/api/Manga.js';
+import { getAuth } from '@clerk/nextjs/server'; // Import Clerk Auth
 
 export default async function handler(req, res) {
     await dbConnect();
-    
-    // Next.js automatically populates 'id' from the filename [id].js
-    const { id } = req.query; 
+    const { userId } = getAuth(req);
+    const { id } = req.query;
+
+    if (!userId) return res.status(401).end();
 
     if (req.method === 'DELETE') {
         try {
-            // Deletes manga by the ID passed in the URL
-            await Manga.findByIdAndDelete(id);
+            // Find AND Delete only if it belongs to this user
+            const deleted = await Manga.findOneAndDelete({ _id: id, userId });
+            if (!deleted) return res.status(404).json({ error: "Unauthorized or Not Found" });
             res.status(204).send();
         } catch (err) {
             res.status(400).json({ error: err.message });
@@ -19,9 +22,9 @@ export default async function handler(req, res) {
     
     else if (req.method === 'PATCH') {
         try {
-            // Updates status and rating of manga by ID
-            const updatedManga = await Manga.findByIdAndUpdate(
-                id, 
+            // Find AND Update only if it belongs to this user
+            const updatedManga = await Manga.findOneAndUpdate(
+                { _id: id, userId }, 
                 { 
                     $set: {
                         status: req.body.status,
@@ -30,14 +33,13 @@ export default async function handler(req, res) {
                 }, 
                 { new: true }
             );
+            if (!updatedManga) return res.status(404).json({ error: "Unauthorized or Not Found" });
             res.status(200).json(updatedManga);
         } catch (err) {
             res.status(400).json({ error: err.message });
         }
     } 
-    
     else {
-        res.setHeader('Allow', ['DELETE', 'PATCH']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+        res.status(405).end();
     }
 }

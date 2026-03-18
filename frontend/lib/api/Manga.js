@@ -1,23 +1,22 @@
 import mongoose from 'mongoose';
 
-// Defines schema for manga entries
 const MangaSchema = new mongoose.Schema({
-    kitsuId: String,      // ID from Kitsu
-    title: String,        // Title of manga
+    kitsuId: String,
+    title: String,
     genres: [String],
-    coverImage: String,   // URL to cover image of manga
-    // Saves user reading status for each manga
+    coverImage: String,
     status: {
         type: String,
         enum: ['Reading', 'Completed', 'Plan-to-read'],
         default: 'Completed',
     },
-    rating: Number,     // User rating
-    synopsis: String,   // Manga synopsis
-    // Potentially for multi user support
+    rating: Number,
+    synopsis: String,
+    // Store the Clerk User ID as a string
     userId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
+        required: true, 
     },
-}, {timestamps: true});     // Adds createdAt and updatedAt
+}, {timestamps: true});
 
 export default mongoose.models.Manga || mongoose.model('Manga', MangaSchema);

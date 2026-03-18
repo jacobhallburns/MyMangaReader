@@ -1,28 +1,35 @@
 import dbConnect from '../../../lib/dbConnect.js';
 import Manga from '../../../lib/api/Manga.js';
+import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
-    // Ensure the database is connected before processing the request
     await dbConnect();
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
 
     const { method } = req;
 
     switch (method) {
         case 'GET':
             try {
-                // Gets all manga from the database
-                const manga = await Manga.find();
+                // ONLY find manga belonging to THIS user
+                const manga = await Manga.find({ userId });
                 res.status(200).json(manga);
             } catch (err) {
-                console.error(err);
                 res.status(500).json({ error: err.message });
             }
             break;
 
         case 'POST':
             try {
-                // Adds a new manga to the database
-                const newManga = new Manga(req.body);
+                // Attach the userId to the new manga record
+                const newManga = new Manga({
+                    ...req.body,
+                    userId
+                });
                 const saved = await newManga.save();
                 res.status(201).json(saved);
             } catch (err) {
@@ -31,9 +38,7 @@ export default async function handler(req, res) {
             break;
 
         default:
-            // If a method other than GET or POST is used
             res.setHeader('Allow', ['GET', 'POST']);
             res.status(405).end(`Method ${method} Not Allowed`);
-            break;
     }
 }
