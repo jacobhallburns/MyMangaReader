@@ -1,0 +1,638 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+frontend/
+  lib/
+    api/
+      dbConnect.js
+      Manga.js
+  pages/
+    api/
+      manga/
+        collection.js
+        recommendations.js
+    _app.tsx
+    manga-list.jsx
+    recommendation.tsx
+    search.jsx
+  styles/
+    globals.css
+  middleware.ts
+  next-env.d.ts
+  package.json
+  tsconfig.json
+.gitignore
+AGENTS.md
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="frontend/lib/api/dbConnect.js">
+import mongoose from 'mongoose';
+
+const MONGODB_URI = process.env.DB_URL; // [cite: 17]
+
+if (!MONGODB_URI) {
+  throw new Error('Please define the DB_URL environment variable');
+}
+
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function dbConnect() {
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => mongoose);
+  }
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+export default dbConnect;
+</file>
+
+<file path="frontend/lib/api/Manga.js">
+import mongoose from 'mongoose';
+
+// Defines schema for manga entries
+const MangaSchema = new mongoose.Schema({
+    kitsuId: String,      // ID from Kitsu
+    title: String,        // Title of manga
+    genres: [String],
+    coverImage: String,   // URL to cover image of manga
+    // Saves user reading status for each manga
+    status: {
+        type: String,
+        enum: ['Reading', 'Completed', 'Plan-to-read'],
+        default: 'Completed',
+    },
+    rating: Number,     // User rating
+    synopsis: String,   // Manga synopsis
+    // Potentially for multi user support
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+    },
+}, {timestamps: true});     // Adds createdAt and updatedAt
+
+export default mongoose.model('Manga', MangaSchema);
+</file>
+
+<file path="frontend/pages/api/manga/collection.js">
+import dbConnect from '../../../lib/dbConnect';
+import Manga from '../../../lib/api/Manga'; // 
+
+export default async function handler(req, res) {
+    const { method } = req;
+    const { id } = req.query; // Handles the /api/manga/collection?id=... logic
+
+    await dbConnect();
+
+    switch (method) {
+        case 'GET':
+            try {
+                const manga = await Manga.find({}); // [cite: 23]
+                res.status(200).json(manga);
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+            break;
+
+        case 'POST':
+            try {
+                const newManga = await Manga.create(req.body); // [cite: 24]
+                res.status(201).json(newManga);
+            } catch (err) {
+                res.status(400).json({ error: err.message });
+            }
+            break;
+
+        case 'PATCH':
+            try {
+                const updatedManga = await Manga.findByIdAndUpdate(
+                    id, 
+                    { $set: { status: req.body.status, rating: req.body.rating }}, // [cite: 26]
+                    { new: true }
+                );
+                if (!updatedManga) return res.status(404).json({ error: "Manga not found" });
+                res.status(200).json(updatedManga);
+            } catch (err) {
+                res.status(400).json({ error: err.message });
+            }
+            break;
+
+        case 'DELETE':
+            try {
+                const deletedManga = await Manga.findByIdAndDelete(id); // [cite: 25]
+                if (!deletedManga) return res.status(404).json({ error: "Manga not found" });
+                res.status(204).end();
+            } catch (err) {
+                res.status(400).json({ error: err.message });
+            }
+            break;
+
+        default:
+            res.setHeader('Allow', ['GET', 'POST', 'PATCH', 'DELETE']);
+            res.status(405).end(`Method ${method} Not Allowed`);
+    }
+}
+</file>
+
+<file path="frontend/pages/api/manga/recommendations.js">
+import dbConnect from '../../../lib/api/dbConnect';
+import Manga from '../../../lib/api/Manga';
+
+export default async function handler(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
+    }
+
+    try {
+        await dbConnect();
+        const { genre } = req.query; 
+        const list = await Manga.find({});
+        const myKitsuIds = new Set(list.map(m => m.kitsuId));
+
+        // ... Keep your existing logic for ALL_GENRES, scores, and fetching ...
+        // Replace 'res.json(...)' at the end with:
+        return res.status(200).json({
+            selectedGenre: targetGenres.join(", "),
+            availableGenres: uniqueGenres,
+            basedOnTaste: formatManga(recommendations),
+            trending: formatManga(trendingData.data || [])
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+}
+</file>
+
+<file path="frontend/middleware.ts">
+import { authMiddleware } from "@clerk/nextjs";
+
+export default authMiddleware({
+  // Routes that can be accessed while signed out
+  publicRoutes: ["/"], 
+  // Routes that can always be accessed, and have no authentication information
+  ignoredRoutes: ["/api/public"], 
+});
+
+export const config = {
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+};
+</file>
+
+<file path="frontend/pages/_app.tsx">
+import '../styles/globals.css';
+import type { AppProps } from 'next/app';
+import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
+
+export default function App({ Component, pageProps }: AppProps) {
+  return (
+    <ClerkProvider {...pageProps}>
+      {/* If you want the whole app protected, use logic here. 
+          Otherwise, just wrap the component as shown below. */}
+      <Component {...pageProps} />
+    </ClerkProvider>
+  );
+}
+</file>
+
+<file path="frontend/next-env.d.ts">
+/// <reference types="next" />
+/// <reference types="next/types/global" />
+/// <reference types="next/image-types/global" />
+</file>
+
+<file path="frontend/tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve"
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pages/api/manga/collection.js"],
+  "exclude": ["node_modules"]
+}
+</file>
+
+<file path=".gitignore">
+# Node modules
+**/node_modules/
+**/npm-debug.log
+
+# Environment variables
+.env
+
+# Local MongoDB data
+db/
+db/*
+
+# Docker artifacts
+**/dist/
+**/build/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# VSCode or IDE files
+.vscode/
+.idea/
+</file>
+
+<file path="AGENTS.md">
+This project is a Manga Reader. We are moving to a serverless architecture on Vercel using Clerk for Auth and MongoDB Atlas for data.
+</file>
+
+<file path="frontend/styles/globals.css">
+/* Default styling settings*/
+
+body {
+    margin: 0;
+    background-color: white;            /*Page background*/
+    color: #cc0000;                     /*Default text color*/
+    font-family: 'Segoe UI', sans-serif;  /*Default font*/
+}
+
+/*For links*/
+a {
+    color: #cc0000;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #00cc66  /*Changes link to green when hover overing it*/
+}
+
+/*For buttons*/
+button {
+    background-color: #cc0000;  
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;    /*Space in button*/
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #00cc66;  /*Green when hovering over*/
+}
+
+/*For inputs (like search)*/
+input, select {
+    padding: 0.5rem;
+    border: 1px solid #00cc66;
+    background-color: #f2a7c2;
+    color: white;
+}
+
+.search-input::placeholder {
+  color: #ff6699;
+}
+</file>
+
+<file path="frontend/package.json">
+{
+  "name": "mymangareader",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.3.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "mongoose": "^8.15.0",
+    "dotenv": "^16.5.0",
+    "@clerk/nextjs": "latest"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "@types/react": "^18.2.41",
+    "@types/react-dom": "^18.2.17",
+    "@types/node": "^22.15.18"
+  }
+}
+</file>
+
+<file path="frontend/pages/recommendation.tsx">
+import React, { useEffect, useState } from 'react';
+import Link from "next/link";
+
+// ... Keep your interfaces ...
+
+export default function Recommendations() {
+    const [recs, setRecs] = useState<RecsData>({ 
+        selectedGenre: '', 
+        availableGenres: [], 
+        basedOnTaste: [], 
+        trending: [] 
+    });
+    const [loading, setLoading] = useState(true);
+
+    const fetchRecs = async () => {
+        setLoading(true);
+        try {
+            // Relative path for serverless environment
+            const res = await fetch('/api/manga/recommendations');
+            const data = await res.json();
+            if (res.ok) setRecs(data);
+        } catch (err) {
+            console.error("Failed to load recommendations", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddFromRec = async (manga: Manga) => {
+        try {
+            const res = await fetch('/api/manga/collection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    kitsuId: manga.kitsuId,
+                    title: manga.title,
+                    coverImage: manga.coverImage,
+                    synopsis: manga.synopsis,
+                    status: 'Plan-to-read',
+                    rating: null
+                })
+            });
+            return res.ok;
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        fetchRecs();
+    }, []);
+
+    return (
+        /* ... Keep your existing JSX ... */
+    );
+}
+</file>
+
+<file path="README.md">
+# MyMangaReader
+A website for keeping track of manga read, and finding related manga
+
+
+## Tools we are using
+
+- **Frontend**: [Next.js](https://nextjs.org/)
+- **Backend**: [Node.js](https://nodejs.org/en) + [Express](https://expressjs.com/)
+- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
+- **API**: [Kitsu API](https://api-docs.kitsu.cloud/)
+- **Containerization**: Docker
+
+## Docker Settings:
+
+WSL needs to be enabled for Docker Desktop.<br>
+
+Put this in your Docker Desktop Settings (replace what was in there please) <br>
+
+```
+{
+  "builder": {
+    "gc": {
+      "defaultKeepStorage": "20GB",
+      "enabled": true
+    }
+  },
+  "dns": [
+    "8.8.8.8",
+    "1.1.1.1"
+  ],
+  "experimental": false
+}
+```
+<br>
+
+## Compile Instructions:
+Run Docker Desktop and wait for it to say "Docker Desktop is running"<br>
+
+From the ../MyMangaReader/ directory, run the following code: <br>
+```docker-compose up --build```
+<br>
+
+## Local Host Site
+Frontend <br>
+```http://localhost:3000/``` <br>
+Manga List <br>
+```http://localhost:3000/manga-list``` <br>
+Backend <br>
+```http://localhost:5000/``` <br>
+</file>
+
+<file path="frontend/pages/manga-list.jsx">
+import { useEffect, useMemo, useState } from 'react';
+import Link from "next/link";
+
+export default function MangaList() {
+    const [manga, setManga] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [sortBy, setSortBy] = useState('Updated');
+
+    const [editingManga, setEditingManga] = useState(null);
+    const [tempStatus, setTempStatus] = useState('Completed');
+    const [tempRating, setTempRating] = useState(null);
+
+    const fetchManga = async () => {
+        try {
+            // Updated to relative Next.js API path
+            const res = await fetch('/api/manga/collection');
+            const data = await res.json();
+            if (res.ok) {
+                setManga(Array.isArray(data) ? data : []);
+            }
+        } catch (err) {
+            console.error("Fetch failed:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchManga();
+    }, []);
+
+    const visibleManga = useMemo(() => {
+        const q = searchTerm.trim().toLowerCase();
+        let list = manga.filter((m) => {
+            const statusOk = statusFilter === 'All' || (m.status || '').toLowerCase() === statusFilter.toLowerCase();
+            if (!q) return statusOk;
+            return (m.title || '').toLowerCase().includes(q) || (m.synopsis || '').toLowerCase().includes(q);
+        });
+
+        if (sortBy === 'TitleAZ') list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        else if (sortBy === 'TitleZA') list.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+        else if (sortBy === 'RatingHigh') list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+        else if (sortBy === 'RatingLow') list.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
+
+        return list;
+    }, [manga, searchTerm, statusFilter, sortBy]);
+
+    const handleUpdate = async () => {
+        try {
+            const res = await fetch(`/api/manga/collection?id=${editingManga._id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rating: tempRating === 'null' ? null : tempRating,
+                    status: tempStatus,
+                }),
+            });
+            if (res.ok) fetchManga();
+        } catch (err) {
+            alert("Update failed");
+        } finally {
+            setEditingManga(null);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("Remove this manga?")) return;
+        try {
+            const res = await fetch(`/api/manga/collection?id=${editingManga._id}`, { method: 'DELETE' });
+            if (res.ok) fetchManga();
+        } catch (err) {
+            alert("Delete failed");
+        } finally {
+            setEditingManga(null);
+        }
+    };
+
+    if (loading) return <p>Loading your collection...</p>;
+
+    return (
+        /* ... Keep your existing JSX and Styles ... */
+        /* Note: Ensure "Save" and "Delete" buttons call handleUpdate and handleDelete */
+    );
+}
+</file>
+
+<file path="frontend/pages/search.jsx">
+import { useEffect, useState } from 'react';
+import Link from "next/link";
+
+export default function MangaSearch() {
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [addedIds, setAddedIds] = useState(new Set());
+
+    useEffect(() => {
+        const fetchExisting = async () => {
+            const res = await fetch('/api/manga/collection');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setAddedIds(new Set(data.map(m => m.kitsuId)));
+            }
+        };
+        fetchExisting();
+    }, []);
+
+    const searchKitsu = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const response = await fetch(`https://kitsu.io/api/edge/manga?filter[text]=${encodeURIComponent(query)}&page[limit]=10`);
+            const data = await response.json();
+            setResults(data.data || []);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const addManga = async (manga, status, rating) => {
+        const genresRes = await fetch(`https://kitsu.io/api/edge/manga/${manga.id}/categories`);
+        const genreData = await genresRes.json();
+        
+        const payload = {
+            kitsuId: manga.id,
+            title: manga.attributes.titles?.en_jp || manga.attributes.slug,
+            coverImage: manga.attributes.posterImage?.small || '',
+            synopsis: manga.attributes.synopsis || '',
+            status,
+            rating,
+            genres: genreData.data.map(g => g.attributes.title)
+        };
+
+        const res = await fetch('/api/manga/collection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) setAddedIds(prev => new Set(prev).add(manga.id));
+    };
+
+    return (
+        /* ... Keep your existing JSX ... */
+    );
+}
+</file>
+
+</files>
