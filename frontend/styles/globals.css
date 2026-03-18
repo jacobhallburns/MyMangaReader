@@ -1,42 +1,43 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --neon-green: #00ff88;
-  --deep-red: #cc0000;
-  --dark-bg: #0a0a0c;
-}
+/* Default styling settings*/
 
 body {
-  margin: 0;
-  background-color: var(--dark-bg);
-  color: white;
-  font-family: 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    background-color: white;            /*Page background*/
+    color: #cc0000;                     /*Default text color*/
+    font-family: 'Segoe UI', sans-serif;  /*Default font*/
 }
 
-/* Custom Scrollbar for that 'Pro' feel */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--neon-green);
-  border-radius: 10px;
+/*For links*/
+a {
+    color: #cc0000;
+    text-decoration: none;
 }
 
-/* Glassmorphism for cards */
-.manga-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 136, 0.1);
-  transition: all 0.3s ease;
+a:hover {
+    color: #00cc66  /*Changes link to green when hover overing it*/
 }
 
-.manga-card:hover {
-  border-color: var(--neon-green);
-  box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
-  transform: translateY(-4px);
+/*For buttons*/
+button {
+    background-color: #cc0000;  
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;    /*Space in button*/
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #00cc66;  /*Green when hovering over*/
+}
+
+/*For inputs (like search)*/
+input, select {
+    padding: 0.5rem;
+    border: 1px solid #00cc66;
+    background-color: #f2a7c2;
+    color: white;
+}
+
+.search-input::placeholder {
+  color: #ff6699;
 }
