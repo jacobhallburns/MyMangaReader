@@ -1,43 +1,46 @@
-/* Default styling settings*/
-
-body {
-    margin: 0;
-    background-color: white;            /*Page background*/
-    color: #cc0000;                     /*Default text color*/
-    font-family: 'Segoe UI', sans-serif;  /*Default font*/
+:root {
+    /* Dark Theme Palette (Default) */
+    --bg-color: #0d1117;         /* Deep charcoal */
+    --card-bg: #161b22;          /* Slightly lighter gray */
+    --text-main: #e6edf3;        /* Off-white */
+    --text-accent: #f85149;      /* Red accent */
+    --text-muted: #8b949e;       /* Muted gray for synopsis */
+    --border-color: #30363d;     /* Subtle borders */
+    --accent-green: #238636;     /* Success/Save green */
+    --input-bg: #0d1117;
 }
 
-/*For links*/
+/* Base resets */
+body {
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    transition: background 0.3s ease;
+}
+
+/* Global Responsive Adjustments */
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+/* Standard Link styling */
 a {
-    color: #cc0000;
+    color: var(--text-accent);
     text-decoration: none;
+    transition: color 0.2s;
 }
 
 a:hover {
-    color: #00cc66  /*Changes link to green when hover overing it*/
+    color: var(--accent-green);
 }
 
-/*For buttons*/
-button {
-    background-color: #cc0000;  
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;    /*Space in button*/
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #00cc66;  /*Green when hovering over*/
-}
-
-/*For inputs (like search)*/
-input, select {
-    padding: 0.5rem;
-    border: 1px solid #00cc66;
-    background-color: #f2a7c2;
-    color: white;
-}
-
-.search-input::placeholder {
-  color: #ff6699;
+/* Button & Input base styles */
+button, input, select {
+    font-family: inherit;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    border: 1.5px solid var(--border-color);
 }

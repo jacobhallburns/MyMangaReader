@@ -106,75 +106,71 @@ export default function MangaList() {
     );
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '0 2rem', minHeight: '100vh', background: '#f8f8f8' }}>
-            <div style={{ maxWidth: '1000px', width: '100%', borderLeft: '2px solid #00cc66', borderRight: '2px solid #00cc66', padding: '0 2rem', minHeight: '100vh' }}>
-                <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8f8f8', padding: '1rem 0' }}>
-                    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #00cc66', paddingBottom: '1rem' }}>
-                        <h1 style={{ margin: 0 }}>My Manga List</h1>
-                        <nav style={{ display: 'flex', gap: '3rem' }}>
-                            <Link href="/recommendation" style={{ fontWeight: 600, fontSize: '1.2rem' }}>Recommendations</Link>
-                            <Link href="/search" style={{ fontWeight: 600, fontSize: '1.2rem' }}>Add Manga</Link>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '1rem' }}>
+            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                
+                {/* STICKY HEADER - Optimized for Mobile */}
+                <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-color)', paddingBottom: '1rem' }}>
+                    <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', gap: '1rem' }}>
+                        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>My List</h1>
+                        <nav style={{ display: 'flex', gap: '1.5rem' }}>
+                            <Link href="/recommendation" style={{ fontSize: '1rem' }}>✨ Recs</Link>
+                            <Link href="/search" style={{ fontSize: '1rem' }}>🔍 Add</Link>
                         </nav>
                     </header>
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                        <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search List..." className="search-input" style={{ flex: 1, padding: '0.7rem', borderRadius: '12px', border: '2px solid #00cc66' }} />
-                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.7rem', borderRadius: '12px', border: '2px solid #00cc66' }}>
-                            <option value="All">All Status</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Reading">Reading</option>
-                            <option value="Plan-to-read">Plan to Read</option>
-                        </select>
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '0.7rem', borderRadius: '12px', border: '2px solid #00cc66' }}>
-                            <option value="Updated">Sort: Default</option>
-                            <option value="TitleAZ">Title: A → Z</option>
-                            <option value="TitleZA">Title: Z → A</option>
-                            <option value="RatingHigh">Rating: High → Low</option>
-                            <option value="RatingLow">Rating: Low → High</option>
-                        </select>
+
+                    {/* FILTERS - Stacks on small screens */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1rem' }}>
+                        <input 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            placeholder="Search List..." 
+                            style={{ background: 'var(--card-bg)', color: 'white' }} 
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ background: 'var(--card-bg)', color: 'white' }}>
+                                <option value="All">All Status</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Reading">Reading</option>
+                                <option value="Plan-to-read">Plan to Read</option>
+                            </select>
+                            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ background: 'var(--card-bg)', color: 'white' }}>
+                                <option value="Updated">Default</option>
+                                <option value="TitleAZ">A → Z</option>
+                                <option value="RatingHigh">★ Top</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1.5rem', marginTop: '1rem' }}>
+                {/* MANGA CARDS */}
+                <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {visibleManga.map((entry) => (
-                        <li key={entry._id} style={{ background: '#fff', border: '2px solid #00cc66', borderRadius: '16px', padding: '1.5rem' }}>
-                            <h2 style={{ color: '#cc0000', margin: '0 0 1rem 0' }}>{entry.title}</h2>
-                            <div style={{ display: 'flex', gap: '1.25rem' }}>
-                                {entry.coverImage && <img src={entry.coverImage} alt={entry.title} style={{ width: '150px', borderRadius: '12px', border: '2px solid #00cc66' }} />}
+                        <li key={entry._id} style={{ 
+                            background: 'var(--card-bg)', 
+                            border: '1px solid var(--border-color)', 
+                            borderRadius: '16px', 
+                            padding: '1rem',
+                            display: 'flex',
+                            flexDirection: 'column', // Stacked by default for mobile
+                            gap: '1rem'
+                        }}>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                {entry.coverImage && <img src={entry.coverImage} alt={entry.title} style={{ width: '80px', height: '120px', objectFit: 'cover' }} />}
                                 <div style={{ flex: 1 }}>
-                                    <p style={{ color: '#ff6699' }}>{entry.synopsis?.slice(0, 250)}...</p>
-                                    <div style={{ display: 'flex', gap: '0.75rem', margin: '1rem 0' }}>
-                                        <span style={{ padding: '0.4rem 0.75rem', borderRadius: '999px', border: '2px solid #00cc66', color: '#00aa55' }}>Status: {entry.status}</span>
-                                        <span style={{ padding: '0.4rem 0.75rem', borderRadius: '999px', border: '2px solid #00cc66', color: '#00aa55' }}>Rating: {entry.rating ?? 'N/A'} ★</span>
-                                    </div>
-                                    <button onClick={() => { setEditingManga(entry); setTempStatus(entry.status); setTempRating(entry.rating ?? 'null'); }} style={{ padding: '0.6rem 1.2rem', borderRadius: '10px', background: '#cc0000', color: 'white' }}>Edit</button>
+                                    <h2 style={{ color: 'var(--text-accent)', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>{entry.title}</h2>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>{entry.synopsis?.slice(0, 100)}...</p>
                                 </div>
+                            </div>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--accent-green)' }}>{entry.status} • {entry.rating ?? 'N/A'} ★</span>
+                                <button onClick={() => { setEditingManga(entry); setTempStatus(entry.status); setTempRating(entry.rating ?? 'null'); }} 
+                                        style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}>Edit</button>
                             </div>
                         </li>
                     ))}
                 </ul>
-
-                {editingManga && (
-                    <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-                        <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '760px', background: '#fff', borderRadius: '18px', border: '2px solid #00cc66', padding: '1.5rem' }}>
-                            <h2 style={{ color: '#cc0000' }}>Edit {editingManga.title}</h2>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', margin: '1rem 0' }}>
-                                <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ padding: '0.7rem', borderRadius: '12px', border: '2px solid #00cc66' }}>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Reading">Reading</option>
-                                    <option value="Plan-to-read">Plan to Read</option>
-                                </select>
-                                <select value={tempRating} onChange={(e) => setTempRating(e.target.value === 'null' ? 'null' : Number(e.target.value))} style={{ padding: '0.7rem', borderRadius: '12px', border: '2px solid #00cc66' }}>
-                                    <option value="null">N/A</option>
-                                    {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-                                </select>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                                <button onClick={handleDelete} style={{ background: '#cc0000', color: 'white', padding: '0.7rem 1.5rem', borderRadius: '12px' }}>Delete</button>
-                                <button onClick={handleSave} style={{ background: '#00cc66', color: 'white', padding: '0.7rem 1.5rem', borderRadius: '12px' }}>Save</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
