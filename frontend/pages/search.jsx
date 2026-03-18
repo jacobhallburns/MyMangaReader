@@ -32,27 +32,42 @@ export default function MangaSearch() {
     };
 
     const addManga = async (manga) => {
-        // Restored Genre-fetching logic
+    setLoading(true);
+    try {
+        // 1. Fetch categories from Kitsu to power recommendations later
         const genresRes = await fetch(`https://kitsu.io/api/edge/manga/${manga.id}/categories`);
         const genreData = await genresRes.json();
-        
+        const genres = genreData.data.map(g => g.attributes.title);
+
         const payload = {
             kitsuId: manga.id,
             title: manga.attributes.titles?.en_jp || manga.attributes.slug,
             coverImage: manga.attributes.posterImage?.small || '',
             synopsis: manga.attributes.synopsis || '',
             status: 'Plan-to-read',
-            genres: genreData.data.map(g => g.attributes.title) // Saved genres for recommendations
+            rating: null,
+            genres: genres // Important for the "Smart Digging" logic
         };
 
+        // 2. Send to the new Serverless API endpoint
         const res = await fetch('/api/manga/collection', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (res.ok) setAddedIds(prev => new Set(prev).add(manga.id));
-    };
+        if (res.ok) {
+            setAddedIds(prev => new Set(prev).add(manga.id));
+        } else {
+            const errorData = await res.json();
+            alert(`Error: ${errorData.error}`);
+        }
+    } catch (err) {
+        console.error("Add failed:", err);
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className="p-8 bg-gray-900 min-h-screen text-white">
