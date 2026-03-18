@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Link from "next/link";
 
 // --- TYPESCRIPT INTERFACES ---
 interface Manga {
@@ -24,7 +23,6 @@ const RecCard = ({ manga }: { manga: Manga }) => {
 
     const handleAdd = async () => {
         try {
-            // Points to the new internal Next.js API handler
             const res = await fetch('/api/manga/collection', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -50,8 +48,8 @@ const RecCard = ({ manga }: { manga: Manga }) => {
 
     return (
         <li style={{
-            background: '#ffffff',
-            border: '2px solid #00cc66',
+            background: 'var(--card-bg)',
+            border: '2px solid var(--border-color)',
             borderRadius: '16px',
             padding: '1rem',
             boxShadow: '0 10px 28px rgba(0,0,0,0.08)',
@@ -61,7 +59,7 @@ const RecCard = ({ manga }: { manga: Manga }) => {
             justifyContent: 'space-between'
         }}>
             <div>
-                <h2 style={{ marginTop: 0, marginBottom: '0.5rem', color: '#cc0000', fontSize: '1.3rem' }}>
+                <h2 style={{ marginTop: 0, marginBottom: '0.5rem', color: 'var(--text-main)', fontSize: '1.3rem' }}>
                     {manga.title}
                 </h2>
 
@@ -75,13 +73,13 @@ const RecCard = ({ manga }: { manga: Manga }) => {
                                 height: '150px',
                                 objectFit: 'cover',
                                 borderRadius: '8px',
-                                border: '2px solid #00cc66',
+                                border: '2px solid var(--border-color)',
                                 flexShrink: 0,
                             }}
                         />
                     )}
                     <p style={{
-                        color: '#ff6699',
+                        color: 'var(--text-muted)',
                         fontSize: '0.9rem',
                         lineHeight: 1.4,
                         margin: 0,
@@ -96,7 +94,7 @@ const RecCard = ({ manga }: { manga: Manga }) => {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                    <span style={{ color: '#00aa55', fontWeight: 600 }}>
+                    <span style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
                     Avg Rating: {manga.rating ? `${manga.rating}/10` : 'N/A'}
                     </span>
                     <button 
@@ -106,7 +104,7 @@ const RecCard = ({ manga }: { manga: Manga }) => {
                             padding: '0.5rem 1rem',
                             borderRadius: '10px',
                             border: 'none',
-                            background: isAdded ? '#888' : '#00cc66',
+                            background: isAdded ? '#888' : 'var(--accent-green)',
                             color: 'white',
                             fontWeight: 'bold',
                             cursor: isAdded ? 'default' : 'pointer',
@@ -119,7 +117,6 @@ const RecCard = ({ manga }: { manga: Manga }) => {
     );
 };
 
-// --- MAIN PAGE COMPONENT ---
 export default function Recommendations() {
     const [recs, setRecs] = useState<RecsData>({ selectedGenre: '', availableGenres: [], basedOnTaste: [], trending: [] });
     const [loading, setLoading] = useState(true);
@@ -127,13 +124,9 @@ export default function Recommendations() {
     const fetchRecs = async () => {
         setLoading(true);
         try {
-            // Points to internal Next.js API route
             const res = await fetch('/api/manga/recommendations');
             const data = await res.json();
-            
-            if (res.ok) {
-                setRecs(data);
-            }
+            if (res.ok) setRecs(data);
         } catch (err) {
             console.error("Failed to load recommendations", err);
         } finally {
@@ -146,37 +139,24 @@ export default function Recommendations() {
     }, []);
 
     return (
-        <div style={{ minHeight: '100vh', background: '#f8f8f8', paddingBottom: '4rem' }}>
-            
-            
-
-            {/* MAIN CONTENT */}
+        <div style={{ minHeight: '100vh', background: 'var(--bg-color)', paddingBottom: '4rem' }}>
             <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
-                
-                {/* SECTION 1: PERSONALIZED */}
                 <div style={{ marginBottom: '4rem' }}>
                 <h2 style={{
-                    color: '#333',
-                    borderLeft: '5px solid #cc0000',
+                    color: 'var(--text-main)',
+                    borderLeft: '5px solid var(--text-main)',
                     paddingLeft: '1rem',
                     margin: 0
                 }}>
                     Recommended For You
                 </h2>
 
-                <p style={{
-                    marginTop: '0.4rem',
-                    marginLeft: '1rem',
-                    color: '#666',
-                    fontSize: '0.95rem'
-                }}>
+                <p style={{ marginTop: '0.4rem', marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
                     {recs.selectedGenre ? `Based on: ${recs.selectedGenre}` : 'Based on your manga list'}
                 </p>
                     
                     {loading ? (
-                        <p style={{color: '#cc0000', fontWeight: 'bold'}}>Finding recommendations for you...</p>
-                    ) : recs.basedOnTaste.length === 0 ? (
-                        <p>No recommendations found yet. Add more manga to your list to improve suggestions.</p>
+                        <p style={{color: 'var(--text-main)', fontWeight: 'bold'}}>Finding recommendations for you...</p>
                     ) : (
                         <ul style={{
                             listStyle: 'none',
@@ -193,9 +173,8 @@ export default function Recommendations() {
                     )}
                 </div>
 
-                {/* SECTION 2: GLOBAL TRENDING */}
                 <div>
-                    <h2 style={{ color: '#333', borderLeft: '5px solid #00cc66', paddingLeft: '1rem', marginBottom: '1.5rem' }}>
+                    <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--border-color)', paddingLeft: '1rem', marginBottom: '1.5rem' }}>
                         Global Trending
                     </h2>
                     <ul style={{
@@ -209,7 +188,6 @@ export default function Recommendations() {
                         ))}
                     </ul>
                 </div>
-
             </main>
         </div>
     );
