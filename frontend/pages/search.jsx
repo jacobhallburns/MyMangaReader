@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Link from "next/link";
 
 export default function MangaSearch() {
     const [query, setQuery] = useState('');
@@ -54,6 +53,36 @@ export default function MangaSearch() {
     };
 
     return (
-        /* ... Keep your existing JSX ... */
+        <div className="p-8 bg-white min-h-screen">
+            <h1 className="text-2xl font-bold mb-4">Search Manga</h1>
+            <form onSubmit={searchKitsu} className="mb-8">
+                <input 
+                    type="text" 
+                    value={query} 
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by title..."
+                    className="p-2 border border-gray-300 rounded mr-2"
+                />
+                <button type="submit" className="bg-blue-500 text-white p-2 rounded">Search</button>
+            </form>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.map((m) => (
+                    <div key={m.id} className="border p-4 rounded shadow">
+                        <h3 className="font-bold">{m.attributes.titles?.en_jp || m.attributes.slug}</h3>
+                        {addedIds.has(m.id) ? (
+                            <span className="text-green-500">In Collection</span>
+                        ) : (
+                            <button 
+                                onClick={() => addManga(m, 'Plan-to-read', null)}
+                                className="bg-green-500 text-white p-1 rounded mt-2"
+                            >
+                                Add to List
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 }
