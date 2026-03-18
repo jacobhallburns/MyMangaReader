@@ -43,14 +43,15 @@ The content is organized as follows:
 frontend/
   lib/
     api/
-      dbConnect.js
       Manga.js
+    dbConnect.js
   pages/
     api/
       manga/
         collection.js
         recommendations.js
     _app.tsx
+    index.tsx
     manga-list.jsx
     recommendation.tsx
     search.jsx
@@ -67,34 +68,6 @@ README.md
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="frontend/lib/api/dbConnect.js">
-import mongoose from 'mongoose';
-
-const MONGODB_URI = process.env.DB_URL; // [cite: 17]
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the DB_URL environment variable');
-}
-
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
-async function dbConnect() {
-  if (cached.conn) return cached.conn;
-
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => mongoose);
-  }
-  cached.conn = await cached.promise;
-  return cached.conn;
-}
-
-export default dbConnect;
-</file>
 
 <file path="frontend/lib/api/Manga.js">
 import mongoose from 'mongoose';
@@ -120,6 +93,34 @@ const MangaSchema = new mongoose.Schema({
 }, {timestamps: true});     // Adds createdAt and updatedAt
 
 export default mongoose.model('Manga', MangaSchema);
+</file>
+
+<file path="frontend/lib/dbConnect.js">
+import mongoose from 'mongoose';
+
+const MONGODB_URI = process.env.DB_URL; // [cite: 17]
+
+if (!MONGODB_URI) {
+  throw new Error('Please define the DB_URL environment variable');
+}
+
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function dbConnect() {
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => mongoose);
+  }
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+export default dbConnect;
 </file>
 
 <file path="frontend/pages/api/manga/collection.js">
@@ -182,35 +183,6 @@ export default async function handler(req, res) {
 }
 </file>
 
-<file path="frontend/pages/api/manga/recommendations.js">
-import dbConnect from '../../../lib/api/dbConnect';
-import Manga from '../../../lib/api/Manga';
-
-export default async function handler(req, res) {
-    if (req.method !== 'GET') {
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
-    }
-
-    try {
-        await dbConnect();
-        const { genre } = req.query; 
-        const list = await Manga.find({});
-        const myKitsuIds = new Set(list.map(m => m.kitsuId));
-
-        // ... Keep your existing logic for ALL_GENRES, scores, and fetching ...
-        // Replace 'res.json(...)' at the end with:
-        return res.status(200).json({
-            selectedGenre: targetGenres.join(", "),
-            availableGenres: uniqueGenres,
-            basedOnTaste: formatManga(recommendations),
-            trending: formatManga(trendingData.data || [])
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-}
-</file>
-
 <file path="frontend/next-env.d.ts">
 /// <reference types="next" />
 /// <reference types="next/types/global" />
@@ -244,6 +216,35 @@ Thumbs.db
 
 <file path="AGENTS.md">
 This project is a Manga Reader. We are moving to a serverless architecture on Vercel using Clerk for Auth and MongoDB Atlas for data.
+</file>
+
+<file path="frontend/pages/api/manga/recommendations.js">
+import dbConnect from '../../../lib/dbConnect';
+import Manga from '../../../lib/api/Manga';
+
+export default async function handler(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
+    }
+
+    try {
+        await dbConnect();
+        const { genre } = req.query; 
+        const list = await Manga.find({});
+        const myKitsuIds = new Set(list.map(m => m.kitsuId));
+
+        // ... Keep your existing logic for ALL_GENRES, scores, and fetching ...
+        // Replace 'res.json(...)' at the end with:
+        return res.status(200).json({
+            selectedGenre: targetGenres.join(", "),
+            availableGenres: uniqueGenres,
+            basedOnTaste: formatManga(recommendations),
+            trending: formatManga(trendingData.data || [])
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+}
 </file>
 
 <file path="frontend/pages/_app.tsx">
@@ -330,6 +331,26 @@ export const config = {
     '/(api|trpc)(.*)',
   ],
 };
+</file>
+
+<file path="frontend/pages/index.tsx">
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+
+export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // This will trigger the middleware check and then move to the list
+    router.push('/manga-list');
+  }, [router]);
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <p className="text-white">Loading your collection...</p>
+    </div>
+  );
+}
 </file>
 
 <file path="frontend/tsconfig.json">
@@ -540,7 +561,6 @@ export default function MangaList() {
 
     const fetchManga = async () => {
         try {
-            // Updated to relative Next.js API path
             const res = await fetch('/api/manga/collection');
             const data = await res.json();
             if (res.ok) {
@@ -579,7 +599,7 @@ export default function MangaList() {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    rating: tempRating === 'null' ? null : tempRating,
+                    rating: tempRating === 'null' ? null : Number(tempRating),
                     status: tempStatus,
                 }),
             });
@@ -592,7 +612,7 @@ export default function MangaList() {
     };
 
     const handleDelete = async () => {
-        if (!confirm("Remove this manga?")) return;
+        if (!confirm("Remove this manga from your collection?")) return;
         try {
             const res = await fetch(`/api/manga/collection?id=${editingManga._id}`, { method: 'DELETE' });
             if (res.ok) fetchManga();
@@ -603,18 +623,105 @@ export default function MangaList() {
         }
     };
 
-    if (loading) return <p>Loading your collection...</p>;
+    if (loading) return <div className="p-8 text-white">Loading your collection...</div>;
 
     return (
-        /* ... Keep your existing JSX and Styles ... */
-        /* Note: Ensure "Save" and "Delete" buttons call handleUpdate and handleDelete */
+        <div className="p-8 min-h-screen bg-gray-900 text-white">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">My Collection</h1>
+                <Link href="/search" className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                    + Add New Manga
+                </Link>
+            </div>
+
+            {/* Filters and Search */}
+            <div className="flex flex-wrap gap-4 mb-8 bg-gray-800 p-4 rounded-lg">
+                <input 
+                    type="text" 
+                    placeholder="Search collection..." 
+                    className="bg-gray-700 p-2 rounded border border-gray-600 flex-grow"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <select 
+                    value={statusFilter} 
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="bg-gray-700 p-2 rounded border border-gray-600"
+                >
+                    <option value="All">All Statuses</option>
+                    <option value="Reading">Reading</option>
+                    <option value="Plan-to-read">Plan to Read</option>
+                    <option value="Completed">Completed</option>
+                </select>
+            </div>
+
+            {/* Manga Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {visibleManga.map((m) => (
+                    <div key={m._id} className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 hover:border-green-500 transition-colors">
+                        <img src={m.coverImage} alt={m.title} className="w-full h-64 object-cover" />
+                        <div className="p-4">
+                            <h3 className="font-bold text-lg truncate">{m.title}</h3>
+                            <div className="flex justify-between items-center mt-2">
+                                <span className="text-sm bg-gray-700 px-2 py-1 rounded text-green-400">{m.status}</span>
+                                <span className="text-yellow-500 font-bold">{m.rating ? `⭐ ${m.rating}` : 'No Rating'}</span>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    setEditingManga(m);
+                                    setTempStatus(m.status);
+                                    setTempRating(m.rating);
+                                }}
+                                className="w-full mt-4 bg-gray-700 hover:bg-gray-600 py-2 rounded text-sm"
+                            >
+                                Edit Entry
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Edit Modal */}
+            {editingManga && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full border border-gray-600">
+                        <h2 className="text-xl font-bold mb-4">Edit: {editingManga.title}</h2>
+                        
+                        <label className="block text-sm mb-1">Status</label>
+                        <select 
+                            value={tempStatus} 
+                            onChange={(e) => setTempStatus(e.target.value)}
+                            className="w-full bg-gray-700 p-2 rounded mb-4 border border-gray-600"
+                        >
+                            <option value="Reading">Reading</option>
+                            <option value="Plan-to-read">Plan to Read</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+
+                        <label className="block text-sm mb-1">Rating (1-10)</label>
+                        <input 
+                            type="number" 
+                            min="1" max="10" 
+                            value={tempRating || ''} 
+                            onChange={(e) => setTempRating(e.target.value)}
+                            className="w-full bg-gray-700 p-2 rounded mb-6 border border-gray-600"
+                        />
+
+                        <div className="flex gap-2">
+                            <button onClick={handleUpdate} className="flex-grow bg-green-600 py-2 rounded">Save Changes</button>
+                            <button onClick={handleDelete} className="px-4 bg-red-600 py-2 rounded">Delete</button>
+                            <button onClick={() => setEditingManga(null)} className="px-4 bg-gray-600 py-2 rounded">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 </file>
 
 <file path="frontend/pages/search.jsx">
 import { useEffect, useState } from 'react';
-import Link from "next/link";
 
 export default function MangaSearch() {
     const [query, setQuery] = useState('');
@@ -669,7 +776,37 @@ export default function MangaSearch() {
     };
 
     return (
-        /* ... Keep your existing JSX ... */
+        <div className="p-8 bg-white min-h-screen">
+            <h1 className="text-2xl font-bold mb-4">Search Manga</h1>
+            <form onSubmit={searchKitsu} className="mb-8">
+                <input 
+                    type="text" 
+                    value={query} 
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by title..."
+                    className="p-2 border border-gray-300 rounded mr-2"
+                />
+                <button type="submit" className="bg-blue-500 text-white p-2 rounded">Search</button>
+            </form>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.map((m) => (
+                    <div key={m.id} className="border p-4 rounded shadow">
+                        <h3 className="font-bold">{m.attributes.titles?.en_jp || m.attributes.slug}</h3>
+                        {addedIds.has(m.id) ? (
+                            <span className="text-green-500">In Collection</span>
+                        ) : (
+                            <button 
+                                onClick={() => addManga(m, 'Plan-to-read', null)}
+                                className="bg-green-500 text-white p-1 rounded mt-2"
+                            >
+                                Add to List
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 }
 </file>
