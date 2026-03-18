@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.DB_URL; // [cite: 17]
+const MONGODB_URI = process.env.MONGODB_URI; // Match your Vercel name
 
 if (!MONGODB_URI) {
   throw new Error('Please define the DB_URL environment variable');
