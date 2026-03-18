@@ -146,13 +146,7 @@ export default function MangaSearch() {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '0 2rem', minHeight: '100vh', background: '#f8f8f8' }}>
             <div style={{ maxWidth: '1000px', width: '100%', borderLeft: '2px solid #00cc66', borderRight: '2px solid #00cc66', padding: '0 2rem', minHeight: '100vh' }}>
                 <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#f8f8f8', padding: '1rem 0' }}>
-                    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #00cc66', marginBottom: '1rem' }}>
-                        <h1 style={{ margin: 0 }}>Add Manga</h1>
-                        <nav style={{ display: 'flex', gap: '3rem' }}>
-                            <Link href="/manga-list" style={{ fontWeight: 600, fontSize: '1.2rem' }}>Manga List</Link>
-                            <Link href="/recommendation" style={{ fontWeight: 600, fontSize: '1.2rem' }}>Recommendations</Link>
-                        </nav>
-                    </header>
+                   
 
                     <form onSubmit={searchKitsu} style={{ paddingBottom: '1rem' }}>
                         <div style={{ display: 'flex', gap: '1rem' }}>

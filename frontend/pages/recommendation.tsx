@@ -148,20 +148,7 @@ export default function Recommendations() {
     return (
         <div style={{ minHeight: '100vh', background: '#f8f8f8', paddingBottom: '4rem' }}>
             
-            {/* HEADER */}
-            <div style={{ background: '#f8f8f8', padding: '0 2rem', borderBottom: '2px solid #00cc66', position: 'sticky', top: 0, zIndex: 10 }}>
-                <header style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 0' }}>
-                    <h1 style={{ margin: 0 }}>Find New Manga</h1>
-                    <nav style={{ display: 'flex', gap: '3rem' }}>
-                        <Link href="/manga-list" style={{ fontWeight: 600, fontSize: '1.2rem', color: '#cc0000', textDecoration: 'none' }}>
-                            Manga List
-                        </Link>
-                        <Link href="/search" style={{ fontWeight: 600, fontSize: '1.2rem', color: '#cc0000', textDecoration: 'none' }}>
-                            Add Manga
-                        </Link>
-                    </nav>
-                </header>
-            </div>
+            
 
             {/* MAIN CONTENT */}
             <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>

@@ -1,46 +1,43 @@
+/* Light Mode (Default) */
 :root {
-    /* Dark Theme Palette (Default) */
-    --bg-color: #0d1117;         /* Deep charcoal */
-    --card-bg: #161b22;          /* Slightly lighter gray */
-    --text-main: #e6edf3;        /* Off-white */
-    --text-accent: #f85149;      /* Red accent */
-    --text-muted: #8b949e;       /* Muted gray for synopsis */
-    --border-color: #30363d;     /* Subtle borders */
-    --accent-green: #238636;     /* Success/Save green */
-    --input-bg: #0d1117;
+    --bg-color: #ffffff;
+    --card-bg: #f8f8f8;
+    --text-main: #cc0000;
+    --text-muted: #666666;
+    --border-color: #00cc66;
+    --input-bg: #f2a7c2;
+    --nav-text: #cc0000;
 }
 
-/* Base resets */
+/* Dark Mode */
+.dark-theme {
+    --bg-color: #0d1117;
+    --card-bg: #161b22;
+    --text-main: #e6edf3;
+    --text-muted: #8b949e;
+    --border-color: #30363d;
+    --input-bg: #0d1117;
+    --nav-text: #f85149;
+}
+
 body {
     margin: 0;
     background-color: var(--bg-color);
     color: var(--text-main);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    transition: background 0.3s ease;
+    font-family: 'Segoe UI', sans-serif;
+    transition: all 0.3s ease;
 }
 
-/* Global Responsive Adjustments */
-img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
+/* Updated Navigation styles to handle full text */
+.nav-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap; /* Allows "Add Manga" to move below if screen is too thin */
 }
 
-/* Standard Link styling */
-a {
-    color: var(--text-accent);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-
-a:hover {
-    color: var(--accent-green);
-}
-
-/* Button & Input base styles */
-button, input, select {
-    font-family: inherit;
-    border-radius: 12px;
-    padding: 0.6rem 1rem;
-    border: 1.5px solid var(--border-color);
+@media (max-width: 600px) {
+    .nav-container {
+        gap: 1rem;
+        justify-content: center;
+    }
 }

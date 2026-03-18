@@ -109,15 +109,9 @@ export default function MangaList() {
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '1rem' }}>
             <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
                 
-                {/* STICKY HEADER - Optimized for Mobile */}
+                
                 <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-color)', paddingBottom: '1rem' }}>
-                    <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', gap: '1rem' }}>
-                        <h1 style={{ margin: 0, fontSize: '1.5rem' }}>My List</h1>
-                        <nav style={{ display: 'flex', gap: '1.5rem' }}>
-                            <Link href="/recommendation" style={{ fontSize: '1rem' }}>✨ Recs</Link>
-                            <Link href="/search" style={{ fontSize: '1rem' }}>🔍 Add</Link>
-                        </nav>
-                    </header>
+                    
 
                     {/* FILTERS - Stacks on small screens */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1rem' }}>
