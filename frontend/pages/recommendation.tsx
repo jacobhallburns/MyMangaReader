@@ -24,8 +24,8 @@ const RecCard = ({ manga }: { manga: Manga }) => {
 
     const handleAdd = async () => {
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            const res = await fetch(`${backendUrl}/api/manga`, {
+            // Points to the new internal Next.js API handler
+            const res = await fetch('/api/manga/collection', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -38,8 +38,11 @@ const RecCard = ({ manga }: { manga: Manga }) => {
                 })
             });
 
-            if (res.ok) setIsAdded(true);
-            else alert("Could not add to list.");
+            if (res.ok) {
+                setIsAdded(true);
+            } else {
+                alert("Could not add to list.");
+            }
         } catch (err) {
             console.error("Failed to add manga:", err);
         }
@@ -118,23 +121,18 @@ const RecCard = ({ manga }: { manga: Manga }) => {
 
 // --- MAIN PAGE COMPONENT ---
 export default function Recommendations() {
-    // Initial state
     const [recs, setRecs] = useState<RecsData>({ selectedGenre: '', availableGenres: [], basedOnTaste: [], trending: [] });
     const [loading, setLoading] = useState(true);
 
-    // Function to fetch data (accepts an optional genre override)
     const fetchRecs = async () => {
         setLoading(true);
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            // If user selected a genre, append it to URL
-            
-            const res = await fetch(`${backendUrl}/api/recommendations`);
+            // Points to internal Next.js API route
+            const res = await fetch('/api/manga/recommendations');
             const data = await res.json();
             
             if (res.ok) {
                 setRecs(data);
-                // If this was the initial load, set the filter to the auto-detected genre
             }
         } catch (err) {
             console.error("Failed to load recommendations", err);
@@ -143,12 +141,9 @@ export default function Recommendations() {
         }
     };
 
-    // Initial Load
     useEffect(() => {
         fetchRecs();
     }, []);
-
- 
 
     return (
         <div style={{ minHeight: '100vh', background: '#f8f8f8', paddingBottom: '4rem' }}>
@@ -188,26 +183,26 @@ export default function Recommendations() {
                     color: '#666',
                     fontSize: '0.95rem'
                 }}>
-                    Based on your manga list
+                    {recs.selectedGenre ? `Based on: ${recs.selectedGenre}` : 'Based on your manga list'}
                 </p>
                     
-                    {loading ? (<p style={{color: '#cc0000', fontWeight: 'bold'}}>
-                            Finding recommendations for you...</p>
+                    {loading ? (
+                        <p style={{color: '#cc0000', fontWeight: 'bold'}}>Finding recommendations for you...</p>
                     ) : recs.basedOnTaste.length === 0 ? (
                         <p>No recommendations found yet. Add more manga to your list to improve suggestions.</p>
                     ) : (
                         <ul style={{
-                        listStyle: 'none',
-                        padding: 0,
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                        rowGap: '3.5rem',
-                        columnGap: '1rem',
-                    }}>
-                        {recs.basedOnTaste.map(m => (
-                            <RecCard key={m.kitsuId} manga={m} />
-                        ))}
-                    </ul>
+                            listStyle: 'none',
+                            padding: 0,
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                            rowGap: '3.5rem',
+                            columnGap: '1rem',
+                        }}>
+                            {recs.basedOnTaste.map(m => (
+                                <RecCard key={m.kitsuId} manga={m} />
+                            ))}
+                        </ul>
                     )}
                 </div>
 

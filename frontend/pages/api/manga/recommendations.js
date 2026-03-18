@@ -1,7 +1,5 @@
-import express from 'express';
-import Manga from '../models/Manga.js';
-// import fetch from 'node-fetch'; // Keep commented out for Node 18+
-const router = express.Router();
+import dbConnect from '../../../lib/dbConnect';
+import Manga from '../../../lib/api/Manga.js';
 
 // Master list to ensure dropdown is never empty
 const ALL_GENRES = [
@@ -14,7 +12,15 @@ const ALL_GENRES = [
     "Space", "Zombie", "Ghost", "Tragedy", "Gore"
 ];
 
-router.get('/', async (req, res) => {
+export default async function handler(req, res) {
+    // 1. Connect to MongoDB
+    await dbConnect();
+
+    if (req.method !== 'GET') {
+        res.setHeader('Allow', ['GET']);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
+    }
+
     try {
         const { genre } = req.query; 
         
@@ -38,19 +44,14 @@ router.get('/', async (req, res) => {
 
             m.genres.forEach(g => {
                 const genreName = g.toLowerCase();
-                // Normalize genre names (capitalize first letter)
                 const formattedName = genreName.charAt(0).toUpperCase() + genreName.slice(1);
                 genreScores[formattedName] = (genreScores[formattedName] || 0) + weight;
             });
         });
 
-        // Determine the "Target Genre"
-        // If user picked one, use it. Otherwise use their #1 calculated genre. Default to Adventure.
         const sortedGenres = Object.entries(genreScores).sort((a, b) => b[1] - a[1]);
 
-        // Take top 3 genres
         let targetGenres;
-
         if (genre) {
             targetGenres = [genre];
         } else if (sortedGenres.length > 0) {
@@ -58,10 +59,8 @@ router.get('/', async (req, res) => {
         } else {
             targetGenres = ['Adventure'];
         }
+
         // --- 2. SMART "DIGGING" FETCH ---
-        // We need 10-15 valid recommendations.
-        // We will loop until we fill this array, or until we try too many times (safety break).
-        
         let recommendations = [];
         let seenIds = new Set();
 
@@ -93,9 +92,8 @@ router.get('/', async (req, res) => {
         // Helper to format for Frontend
         const formatManga = (items) => {
             return items
-                // Remove duplicates (just in case)
                 .filter((item, index, self) => index === self.findIndex((t) => (t.id === item.id)))
-                .slice(0, 20) // Limit to top 20
+                .slice(0, 20) 
                 .map(item => ({
                     kitsuId: item.id,
                     title: item.attributes.titles.en || item.attributes.titles.en_jp,
@@ -107,13 +105,12 @@ router.get('/', async (req, res) => {
         };
 
         // --- 3. MERGE GENRES FOR DROPDOWN ---
-        // Combine standard genres with any niche ones the user has discovered
         const userKnownGenres = Object.keys(genreScores);
         const uniqueGenres = [...new Set([...ALL_GENRES, ...userKnownGenres])].sort();
 
-        res.json({
+        res.status(200).json({
             selectedGenre: targetGenres.join(", "),
-            availableGenres: uniqueGenres, // Now returns full list
+            availableGenres: uniqueGenres, 
             basedOnTaste: formatManga(recommendations),
             trending: formatManga(trendingData.data || [])
         });
@@ -122,6 +119,4 @@ router.get('/', async (req, res) => {
         console.error("Rec Error:", err);
         res.status(500).json({ error: err.message });
     }
-});
-
-export default router;
+}
