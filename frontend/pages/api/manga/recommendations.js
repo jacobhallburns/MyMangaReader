@@ -1,4 +1,4 @@
-import dbConnect from '../../../lib/api/dbConnect';
+import dbConnect from '../../../lib/dbConnect';
 import Manga from '../../../lib/api/Manga';
 
 export default async function handler(req, res) {
