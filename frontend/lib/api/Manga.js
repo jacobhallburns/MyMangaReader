@@ -20,4 +20,4 @@ const MangaSchema = new mongoose.Schema({
     },
 }, {timestamps: true});     // Adds createdAt and updatedAt
 
-export default mongoose.model('Manga', MangaSchema);
+export default mongoose.models.Manga || mongoose.model('Manga', MangaSchema);
