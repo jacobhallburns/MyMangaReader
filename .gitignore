@@ -20,3 +20,4 @@ Thumbs.db
 # VSCode or IDE files
 .vscode/
 .idea/
+frontend/.next

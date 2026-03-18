@@ -20,12 +20,10 @@ export default function MangaSearch() {
     const [offset, setOffset] = useState(0);
     const [moreManga, setMoreManga] = useState(true);
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
     useEffect(() => {
     const fetchAddedManga = async () => {
         try {
-        const res = await fetch(`${backendUrl}/api/manga`);
+        const res = await fetch(`/api/manga`);
         const raw = await res.json().catch(() => null);
 
         const list =
@@ -48,7 +46,7 @@ export default function MangaSearch() {
     };
 
     fetchAddedManga();
-    }, [backendUrl]);
+    }, []);
 
 
     const openAddModal = (manga) => {
@@ -116,7 +114,7 @@ export default function MangaSearch() {
         };
 
         try {
-            const response = await fetch(`${backendUrl}/api/manga`, {
+            const response = await fetch(`/api/manga`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -141,7 +139,7 @@ export default function MangaSearch() {
         }
 
         try {
-        await fetch(`${backendUrl}/api/manga/${editingManga._id}`, {
+        await fetch(`/api/manga/${editingManga._id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -621,7 +619,7 @@ export default function MangaSearch() {
                 <button
                     onClick={async () => {
                     try {
-                        await fetch(`${backendUrl}/api/manga/${editingManga._id}`, { method: 'DELETE' });
+                        await fetch(`/api/manga/${editingManga._id}`, { method: 'DELETE' });
 
                         setAddedIds((prev) => {
                         const s = new Set(prev);

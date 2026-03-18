@@ -24,8 +24,7 @@ const RecCard = ({ manga }: { manga: Manga }) => {
 
     const handleAdd = async () => {
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-            const res = await fetch(`${backendUrl}/api/manga`, {
+            const res = await fetch(`/api/manga`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -126,10 +125,9 @@ export default function Recommendations() {
     const fetchRecs = async () => {
         setLoading(true);
         try {
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
             // If user selected a genre, append it to URL
             
-            const res = await fetch(`${backendUrl}/api/recommendations`);
+            const res = await fetch(`/api/recommendations`);
             const data = await res.json();
             
             if (res.ok) {

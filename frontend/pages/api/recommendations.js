@@ -1,7 +1,5 @@
-import express from 'express';
-import Manga from '../models/Manga.js';
-// import fetch from 'node-fetch'; // Keep commented out for Node 18+
-const router = express.Router();
+import dbConnect from '../../lib/db.js';
+import Manga from '../../models/Manga.js';
 
 // Master list to ensure dropdown is never empty
 const ALL_GENRES = [
@@ -14,7 +12,10 @@ const ALL_GENRES = [
     "Space", "Zombie", "Ghost", "Tragedy", "Gore"
 ];
 
-router.get('/', async (req, res) => {
+export default async function handler(req, res) {
+  await dbConnect();
+
+  if (req.method === 'GET') {
     try {
         const { genre } = req.query; 
         
@@ -111,7 +112,7 @@ router.get('/', async (req, res) => {
         const userKnownGenres = Object.keys(genreScores);
         const uniqueGenres = [...new Set([...ALL_GENRES, ...userKnownGenres])].sort();
 
-        res.json({
+        res.status(200).json({
             selectedGenre: targetGenres.join(", "),
             availableGenres: uniqueGenres, // Now returns full list
             basedOnTaste: formatManga(recommendations),
@@ -122,6 +123,8 @@ router.get('/', async (req, res) => {
         console.error("Rec Error:", err);
         res.status(500).json({ error: err.message });
     }
-});
-
-export default router;
+  } else {
+    res.setHeader('Allow', ['GET']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}

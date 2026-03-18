@@ -22,9 +22,7 @@ export default function MangaList() {
 
     const fetchManga = async () => {
     try {
-        // Use the env variable, OR fallback to localhost:5000 if it's missing
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-        const res = await fetch(`${backendUrl}/api/manga`);
+        const res = await fetch(`/api/manga`);
 
         // DB not ready yet → keep loading and retry
         if (res.status === 503) {
@@ -533,10 +531,7 @@ export default function MangaList() {
             <button
               onClick={async () => {
                 try {
-                  const backendUrl =
-                    process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
-                  await fetch(`${backendUrl}/api/manga/${editingManga._id}`, {
+                  await fetch(`/api/manga/${editingManga._id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -578,10 +573,7 @@ export default function MangaList() {
             <button
               onClick={async () => {
                 try {
-                  const backendUrl =
-                    process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
-                  await fetch(`${backendUrl}/api/manga/${editingManga._id}`, {
+                  await fetch(`/api/manga/${editingManga._id}`, {
                     method: 'DELETE',
                   });
 

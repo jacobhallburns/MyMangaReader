@@ -45,5 +45,3 @@ Frontend <br>
 ```http://localhost:3000/``` <br>
 Manga List <br>
 ```http://localhost:3000/manga-list``` <br>
-Backend <br>
-```http://localhost:5000/``` <br>
