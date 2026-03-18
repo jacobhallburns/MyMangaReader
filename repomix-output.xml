@@ -211,63 +211,10 @@ export default async function handler(req, res) {
 }
 </file>
 
-<file path="frontend/middleware.ts">
-import { authMiddleware } from "@clerk/nextjs";
-
-export default authMiddleware({
-  // Routes that can be accessed while signed out
-  publicRoutes: ["/"], 
-  // Routes that can always be accessed, and have no authentication information
-  ignoredRoutes: ["/api/public"], 
-});
-
-export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
-};
-</file>
-
-<file path="frontend/pages/_app.tsx">
-import '../styles/globals.css';
-import type { AppProps } from 'next/app';
-import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
-
-export default function App({ Component, pageProps }: AppProps) {
-  return (
-    <ClerkProvider {...pageProps}>
-      {/* If you want the whole app protected, use logic here. 
-          Otherwise, just wrap the component as shown below. */}
-      <Component {...pageProps} />
-    </ClerkProvider>
-  );
-}
-</file>
-
 <file path="frontend/next-env.d.ts">
 /// <reference types="next" />
 /// <reference types="next/types/global" />
 /// <reference types="next/image-types/global" />
-</file>
-
-<file path="frontend/tsconfig.json">
-{
-  "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve"
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pages/api/manga/collection.js"],
-  "exclude": ["node_modules"]
-}
 </file>
 
 <file path=".gitignore">
@@ -297,6 +244,22 @@ Thumbs.db
 
 <file path="AGENTS.md">
 This project is a Manga Reader. We are moving to a serverless architecture on Vercel using Clerk for Auth and MongoDB Atlas for data.
+</file>
+
+<file path="frontend/pages/_app.tsx">
+import '../styles/globals.css';
+import type { AppProps } from 'next/app';
+import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
+
+export default function App({ Component, pageProps }: AppProps) {
+  return (
+    <ClerkProvider {...pageProps}>
+      {/* If you want the whole app protected, use logic here. 
+          Otherwise, just wrap the component as shown below. */}
+      <Component {...pageProps} />
+    </ClerkProvider>
+  );
+}
 </file>
 
 <file path="frontend/styles/globals.css">
@@ -345,90 +308,59 @@ input, select {
 }
 </file>
 
-<file path="frontend/package.json">
-{
-  "name": "mymangareader",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "next": "^15.3.2",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "mongoose": "^8.15.0",
-    "dotenv": "^16.5.0",
-    "@clerk/nextjs": "latest"
-  },
-  "devDependencies": {
-    "typescript": "5.8.3",
-    "@types/react": "^18.2.41",
-    "@types/react-dom": "^18.2.17",
-    "@types/node": "^22.15.18"
+<file path="frontend/middleware.ts">
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+
+// 1. Define which routes are public
+const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)']);
+
+export default clerkMiddleware(async (auth, request) => {
+  // 2. If the route is NOT public, protect it
+  if (!isPublicRoute(request)) {
+    // Correct usage for v6+: call .protect() directly on the auth object
+    await auth.protect(); 
   }
-}
+});
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and all static files
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+};
 </file>
 
-<file path="frontend/pages/recommendation.tsx">
-import React, { useEffect, useState } from 'react';
-import Link from "next/link";
-
-// ... Keep your interfaces ...
-
-export default function Recommendations() {
-    const [recs, setRecs] = useState<RecsData>({ 
-        selectedGenre: '', 
-        availableGenres: [], 
-        basedOnTaste: [], 
-        trending: [] 
-    });
-    const [loading, setLoading] = useState(true);
-
-    const fetchRecs = async () => {
-        setLoading(true);
-        try {
-            // Relative path for serverless environment
-            const res = await fetch('/api/manga/recommendations');
-            const data = await res.json();
-            if (res.ok) setRecs(data);
-        } catch (err) {
-            console.error("Failed to load recommendations", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAddFromRec = async (manga: Manga) => {
-        try {
-            const res = await fetch('/api/manga/collection', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    kitsuId: manga.kitsuId,
-                    title: manga.title,
-                    coverImage: manga.coverImage,
-                    synopsis: manga.synopsis,
-                    status: 'Plan-to-read',
-                    rating: null
-                })
-            });
-            return res.ok;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
-    };
-
-    useEffect(() => {
-        fetchRecs();
-    }, []);
-
-    return (
-        /* ... Keep your existing JSX ... */
-    );
+<file path="frontend/tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }
 </file>
 
@@ -482,6 +414,113 @@ Manga List <br>
 ```http://localhost:3000/manga-list``` <br>
 Backend <br>
 ```http://localhost:5000/``` <br>
+</file>
+
+<file path="frontend/package.json">
+{
+  "name": "mymangareader",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+    "dependencies": {
+    "next": "15.5.9",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "mongoose": "^8.15.0",
+    "dotenv": "^16.5.0",
+    "@clerk/nextjs": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/node": "^22.0.0"
+  }
+}
+</file>
+
+<file path="frontend/pages/recommendation.tsx">
+import React, { useEffect, useState } from 'react';
+
+// 1. Define the Manga interface
+interface Manga {
+    kitsuId: string;
+    title: string;
+    coverImage: string;
+    synopsis: string;
+}
+
+// 2. Define the Recommendation Data interface
+interface RecsData {
+    selectedGenre: string;
+    availableGenres: string[];
+    basedOnTaste: Manga[];
+    trending: Manga[]; // Changed from byGenre to match your second state block
+}
+
+export default function Recommendations() {
+    const [recs, setRecs] = useState<RecsData>({ 
+        selectedGenre: '', 
+        availableGenres: [], 
+        basedOnTaste: [], 
+        trending: [] 
+    });
+    const [loading, setLoading] = useState(true);
+
+    const fetchRecs = async () => {
+        setLoading(true);
+        try {
+            // Relative path is correct for Vercel serverless functions
+            const res = await fetch('/api/manga/recommendations');
+            if (res.ok) {
+                const data = await res.json();
+                setRecs(data);
+            }
+        } catch (err) {
+            console.error("Failed to load recommendations", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddFromRec = async (manga: Manga) => {
+        try {
+            const res = await fetch('/api/manga/collection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    kitsuId: manga.kitsuId,
+                    title: manga.title,
+                    coverImage: manga.coverImage,
+                    synopsis: manga.synopsis,
+                    status: 'Plan-to-read',
+                    rating: null
+                })
+            });
+            return res.ok;
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        fetchRecs();
+    }, []);
+
+    if (loading) return <div className="p-8 text-white">Loading recommendations...</div>;
+
+    return (
+        <div className="p-8 text-white">
+            <h1 className="text-2xl font-bold mb-4">Recommended for You</h1>
+            {/* Your JSX logic for mapping over recs.basedOnTaste and recs.trending goes here */}
+        </div>
+    );
+}
 </file>
 
 <file path="frontend/pages/manga-list.jsx">
