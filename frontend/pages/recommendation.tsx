@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import Link from "next/link";
 
-// ... Keep your interfaces ...
+// 1. Define the Manga interface
+interface Manga {
+    kitsuId: string;
+    title: string;
+    coverImage: string;
+    synopsis: string;
+}
+
+// 2. Define the Recommendation Data interface
+interface RecsData {
+    selectedGenre: string;
+    availableGenres: string[];
+    basedOnTaste: Manga[];
+    trending: Manga[]; // Changed from byGenre to match your second state block
+}
 
 export default function Recommendations() {
     const [recs, setRecs] = useState<RecsData>({ 
@@ -15,10 +28,12 @@ export default function Recommendations() {
     const fetchRecs = async () => {
         setLoading(true);
         try {
-            // Relative path for serverless environment
+            // Relative path is correct for Vercel serverless functions
             const res = await fetch('/api/manga/recommendations');
-            const data = await res.json();
-            if (res.ok) setRecs(data);
+            if (res.ok) {
+                const data = await res.json();
+                setRecs(data);
+            }
         } catch (err) {
             console.error("Failed to load recommendations", err);
         } finally {
@@ -51,7 +66,12 @@ export default function Recommendations() {
         fetchRecs();
     }, []);
 
+    if (loading) return <div className="p-8 text-white">Loading recommendations...</div>;
+
     return (
-        /* ... Keep your existing JSX ... */
+        <div className="p-8 text-white">
+            <h1 className="text-2xl font-bold mb-4">Recommended for You</h1>
+            {/* Your JSX logic for mapping over recs.basedOnTaste and recs.trending goes here */}
+        </div>
     );
 }
