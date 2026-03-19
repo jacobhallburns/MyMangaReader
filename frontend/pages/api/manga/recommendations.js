@@ -1,16 +1,14 @@
 import dbConnect from '../../../lib/dbConnect';
-import Manga from '../../../lib/api/Manga.js';
-import { getAuth } from '@clerk/nextjs/server'; // Import Clerk Auth
+import Manga from '../../../lib/api/Manga';
+import UserManga from '../../../lib/api/UserManga'; 
+import { getAuth } from '@clerk/nextjs/server';
 
-// Master list to ensure dropdown is never empty
 const ALL_GENRES = [
-    "Action", "Adventure", "Comedy", "Drama", "Sci-Fi", "Space", "Mystery", 
-    "Magic", "Supernatural", "Police", "Fantasy", "Sports", "Romance", 
-    "Slice of Life", "Racing", "Horror", "Psychological", "Thriller", 
-    "Martial Arts", "Super Power", "School", "Ecchi", "Vampire", "Historical", 
-    "Military", "Harem", "Mecha", "Demons", "Shounen", "Shoujo", "Seinen", 
-    "Josei", "Gender Bender", "Game", "Music", "Post-Apocalyptic",
-    "Space", "Zombie", "Ghost", "Tragedy", "Gore"
+    "Action", "Adventure", "Comedy", "Drama", "Sci-Fi", "Mystery", 
+    "Magic", "Supernatural", "Fantasy", "Sports", "Romance", 
+    "Slice of Life", "Horror", "Psychological", "Thriller", 
+    "Martial Arts", "School", "Historical", "Military", "Mecha", 
+    "Demons", "Shounen", "Shoujo", "Seinen", "Josei", "Game"
 ];
 
 export default async function handler(req, res) {
@@ -19,89 +17,71 @@ export default async function handler(req, res) {
         return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    // 1. Get the authenticated User ID
     const { userId } = getAuth(req);
-
-    // If there is no user, we can still show "Global Trending", 
-    // but we can't show personalized "Based on Taste"
-    if (!userId) {
-        // Option A: Return 401 Unauthorized
-        // return res.status(401).json({ error: "Unauthorized" });
-
-        // Option B: Fallback to only showing trending (safer for UX)
-        console.warn("No userId found; returning empty personalized list.");
-    }
-
-    // Initialize data structures to prevent crashes if DB fails
     let list = [];
     let myKitsuIds = new Set();
     let genreScores = {};
 
     try {
-        // 2. Attempt Database Connection
         await dbConnect();
 
-        // 3. ONLY find manga belonging to THIS user
         if (userId) {
-            list = await Manga.find({ userId });
-            myKitsuIds = new Set(list.map(m => m.kitsuId));
-        }
+            // 1. Fetch user's personal list and POPULATE the global manga data
+            // This is the key change from your old version
+            list = await UserManga.find({ userId }).populate('mangaId').lean();
+            
+            myKitsuIds = new Set(list.map(entry => entry.mangaId?.kitsuId));
 
-        // 4. Calculate User Taste based only on their list
-        const statusBonus = (s) => {
-            const status = s ? s.toLowerCase() : '';
-            return status === 'reading' ? 5 : status === 'completed' ? 3 : 0;
-        };
+            // 2. Calculate taste based on the populated genres and user's rating
+            list.forEach(entry => {
+                const globalData = entry.mangaId;
+                if (!globalData || !globalData.genres) return;
 
-        list.forEach(m => {
-            if (!m.genres || m.genres.length === 0) return;
-            const weight = (Number(m.rating || 0) ** 2) + statusBonus(m.status);
-            m.genres.forEach(g => {
-                const formattedName = g.charAt(0).toUpperCase() + g.slice(1).toLowerCase();
-                genreScores[formattedName] = (genreScores[formattedName] || 0) + weight;
+                // Weight based on user's personal rating and status
+                const weight = (Number(entry.rating || 0) ** 2) + (entry.status === 'reading' ? 5 : 2);
+                
+                globalData.genres.forEach(g => {
+                    const formatted = g.charAt(0).toUpperCase() + g.slice(1).toLowerCase();
+                    genreScores[formatted] = (genreScores[formatted] || 0) + weight;
+                });
             });
-        });
+        }
     } catch (dbErr) {
-        console.error("Database or Model Error:", dbErr.message);
-        // We continue so the "Global Trending" can still load even if DB is down
+        console.error("Taste Calculation Error:", dbErr.message);
     }
 
     try {
         const { genre } = req.query;
         const sortedGenres = Object.entries(genreScores).sort((a, b) => b[1] - a[1]);
+        
+        // Pick top 3 genres or fallback
+        let targetGenres = genre ? [genre] : sortedGenres.slice(0, 3).map(g => g[0]);
+        if (targetGenres.length === 0) targetGenres = ['Adventure'];
 
-        let targetGenres;
-        if (genre) {
-            targetGenres = [genre];
-        } else if (sortedGenres.length > 0) {
-            targetGenres = sortedGenres.slice(0, 3).map(g => g[0]);
-        } else {
-            targetGenres = ['Adventure']; // Default fallback
-        }
-
-        // 5. Fetch from Kitsu (Recommendations + Trending)
+        // 3. Fetch from Kitsu (Recommendations + Trending)
         const [recResults, trendingRes] = await Promise.all([
             Promise.all(targetGenres.map(tg => 
-                fetch(`https://kitsu.io/api/edge/manga?filter[categories]=${tg}&sort=-averageRating&page[limit]=20`)
+                fetch(`https://kitsu.io/api/edge/manga?filter[categories]=${tg}&sort=-averageRating&page[limit]=15`)
                 .then(r => r.json())
             )),
-            fetch(`https://kitsu.io/api/edge/trending/manga?limit=20`).then(r => r.json())
+            fetch(`https://kitsu.io/api/edge/trending/manga?limit=15`).then(r => r.json())
         ]);
 
-        const formatManga = (items) => (items || [])
+        // 4. Unified Formatter - Now using LARGE posters to match your new UI!
+        const formatManga = (data) => (data || [])
             .filter((item, index, self) => item && index === self.findIndex((t) => t.id === item.id))
             .map(item => ({
                 kitsuId: item.id,
-                title: item.attributes.titles.en || item.attributes.titles.en_jp,
-                posterImage: item.attributes.posterImage?.small,
+                title: item.attributes.canonicalTitle || item.attributes.titles.en_jp,
+                // High-res posters for the new 140x210 scale
+                posterImage: item.attributes.posterImage?.large || item.attributes.posterImage?.medium,
                 synopsis: item.attributes.synopsis,
-                status: 'Recommended',
-                rating: item.attributes.averageRating ? Math.round(item.attributes.averageRating / 10) : null
+                rating: item.attributes.averageRating ? (item.attributes.averageRating / 10).toFixed(1) : "N/A"
             }));
 
         const recommendations = recResults.flatMap(r => r.data || [])
-            .filter(item => !myKitsuIds.has(item.id)) // Ensure we don't recommend what the user already owns
-            .slice(0, 20);
+            .filter(item => !myKitsuIds.has(item.id)) 
+            .slice(0, 15);
 
         const uniqueGenres = [...new Set([...ALL_GENRES, ...Object.keys(genreScores)])].sort();
 
@@ -113,7 +93,7 @@ export default async function handler(req, res) {
         });
 
     } catch (apiErr) {
-        console.error("Kitsu API Error:", apiErr.message);
-        res.status(500).json({ error: "Failed to fetch recommendations" });
+        console.error("API Error:", apiErr.message);
+        res.status(500).json({ error: "Failed to fetch data" });
     }
 }
