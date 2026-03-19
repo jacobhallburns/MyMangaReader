@@ -7,18 +7,19 @@
     "start": "next start",
     "lint": "next lint"
   },
-    "dependencies": {
+  "dependencies": {
+    "@clerk/nextjs": "^6.0.0",
+    "@clerk/themes": "^2.4.57",
+    "dotenv": "^16.5.0",
+    "mongoose": "^8.15.0",
     "next": "15.5.9",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "mongoose": "^8.15.0",
-    "dotenv": "^16.5.0",
-    "@clerk/nextjs": "^6.0.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "typescript": "5.8.3",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/node": "^22.0.0"
+    "typescript": "5.8.3"
   }
 }
