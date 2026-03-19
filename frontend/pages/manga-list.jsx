@@ -104,7 +104,7 @@ export default function MangaList() {
 
     if (loading) return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ color: 'white' }}>Loading your collection...</p>
+            <p style={{ color: 'var(--text-main)' }}>Loading your collection...</p>
         </div>
     );
 
@@ -118,10 +118,10 @@ export default function MangaList() {
                             value={searchTerm} 
                             onChange={(e) => setSearchTerm(e.target.value)} 
                             placeholder="Search List..." 
-                            style={{ padding: '0.7rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'white' }} 
+                            style={{ padding: '0.7rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }} 
                         />
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.5rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'white' }}>
+                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.5rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)' }}>
                                 <option value="All">All Status</option>
                                 <option value="reading">Reading</option>
                                 <option value="completed">Completed</option>
@@ -129,7 +129,7 @@ export default function MangaList() {
                                 <option value="on_hold">On Hold</option>
                                 <option value="dropped">Dropped</option>
                             </select>
-                            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '0.5rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'white' }}>
+                            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '0.5rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)' }}>
                                 <option value="Updated">Default</option>
                                 <option value="TitleAZ">A → Z</option>
                                 <option value="RatingHigh">★ Top</option>
@@ -194,7 +194,7 @@ export default function MangaList() {
                 {editingManga && (
                     <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
                         <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '400px', background: 'var(--card-bg)', borderRadius: '18px', border: '1px solid var(--border-color)', padding: '1.5rem' }}>
-                            <h2 style={{ color: 'white', marginTop: 0 }}>Edit Entry</h2>
+                            <h2 style={{ color: 'var(--text-main)', marginTop: 0 }}>Edit Entry</h2>
                             
                             <div style={{ marginBottom: '1rem' }}>
                                 <label style={{ color: 'gray', fontSize: '0.8rem' }}>Status</label>
@@ -225,7 +225,7 @@ export default function MangaList() {
                                         padding: '0.7rem', 
                                         borderRadius: '10px', 
                                         background: 'var(--bg-color)', 
-                                        color: 'white', 
+                                        color: 'var(--text-main)', 
                                         border: '1px solid var(--border-color)',
                                         minHeight: '80px',
                                         boxSizing: 'border-box', // This prevents the box from "pushing out"
@@ -237,7 +237,7 @@ export default function MangaList() {
                             <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <button 
                                     onClick={handleSave} 
-                                    style={{ flex: 2, padding: '0.8rem', background: '#4CAF50', color: 'white', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                                    style={{ flex: 2, padding: '0.8rem', background: '#4CAF50', color: 'var(--text-main)', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
                                 >
                                     Save Changes
                                 </button>
