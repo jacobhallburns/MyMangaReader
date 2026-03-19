@@ -57,6 +57,7 @@ function ThemeWrapper({ Component, pageProps }: AppProps) {
       */}
       <ClerkProvider 
         {...pageProps}
+        afterSignOutUrl="/sign-in"
         appearance={{
           baseTheme: isDark ? dark : undefined,
           variables: { colorPrimary: '#cc0000' }
@@ -69,7 +70,7 @@ function ThemeWrapper({ Component, pageProps }: AppProps) {
               <Link href="/manga-list" style={{ color: 'var(--text-main)' }}>Manga List</Link>
               {/* ... other links ... */}
               <button onClick={toggleTheme}>{isDark ? '☀️' : '🌙'}</button>
-              <UserButton signOutFallbackRedirectUrl="/sign-in" />
+              <UserButton />
             </nav>
           </header>
         </div>
