@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
 import { useClerk, useUser } from '@clerk/nextjs';
 
 const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
