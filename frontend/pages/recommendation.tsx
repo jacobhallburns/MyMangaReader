@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/router'
 
 // --- TYPESCRIPT INTERFACES ---
 interface Manga {
@@ -117,10 +118,12 @@ const RecCard = ({
                     <button 
                         onClick={() => {
                             if (!isSignedIn) {
-                                window.location.href = "/sign-in";
-                                return;
+                                window.location.href = "https://accounts.your-clerk-domain.com/sign-in"; 
+                                // OR safer:
+                                router.push('/sign-in'); 
+                            } else {
+                                setShowModal(true);
                             }
-                            if (!isAlreadyAdded) setShowModal(true);
                         }}
                         disabled={isAlreadyAdded}
                         style={{ 
@@ -230,31 +233,32 @@ export default function Recommendations() {
             <main style={{ maxWidth: '1100px', margin: '0 auto' }}>
                 <h1 style={{ color: 'var(--text-main)', fontSize: '2.5rem', marginBottom: '2rem', fontWeight: '900' }}>Discover</h1>
                 
-                {/* Personalized Section */}
-                <section style={{ marginBottom: '4rem' }}>
-                    <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--accent-green)', paddingLeft: '1rem', marginBottom: '0.5rem', fontSize: '1.5rem' }}>
-                        Recommended For You
-                    </h2>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', marginLeft: '1.3rem', fontSize: '1rem' }}>
-                        {recs.selectedGenre ? `Because you like ${recs.selectedGenre}` : 'Based on your reading history'}
-                    </p>
-                    
-                    <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '2rem' }}>
-                        {loading ? (
-                            <p style={{color: 'var(--text-muted)'}}>Finding recommendations for you...</p>
-                        ) : (
-                            recs.basedOnTaste.map(m => (
-                                <RecCard 
-                                    key={m.kitsuId} 
-                                    manga={m} 
-                                    onAdded={handleMangaAdded} 
-                                    isAlreadyAdded={addedIds.has(m.kitsuId)} 
-                                />
-                            ))
-                        )}
-                    </ul>
-                </section>
-
+                {recs.basedOnTaste.length > 0 && (
+                    {/* Personalized Section */}
+                    <section style={{ marginBottom: '4rem' }}>
+                        <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--accent-green)', paddingLeft: '1rem', marginBottom: '0.5rem', fontSize: '1.5rem' }}>
+                            Recommended For You
+                        </h2>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', marginLeft: '1.3rem', fontSize: '1rem' }}>
+                            {recs.selectedGenre ? `Because you like ${recs.selectedGenre}` : 'Based on your reading history'}
+                        </p>
+                        
+                        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '2rem' }}>
+                            {loading ? (
+                                <p style={{color: 'var(--text-muted)'}}>Finding recommendations for you...</p>
+                            ) : (
+                                recs.basedOnTaste.map(m => (
+                                    <RecCard 
+                                        key={m.kitsuId} 
+                                        manga={m} 
+                                        onAdded={handleMangaAdded} 
+                                        isAlreadyAdded={addedIds.has(m.kitsuId)} 
+                                    />
+                                ))
+                            )}
+                        </ul>
+                    </section>
+                )}
                 {/* Trending Section */}
                 <section>
                     <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--border-color)', paddingLeft: '1rem', marginBottom: '2rem', fontSize: '1.5rem' }}>

@@ -54,26 +54,29 @@ export default async function handler(req, res) {
         const { genre } = req.query;
         const sortedGenres = Object.entries(genreScores).sort((a, b) => b[1] - a[1]);
         
-        // Pick top 3 genres or fallback
-        let targetGenres = genre ? [genre] : sortedGenres.slice(0, 3).map(g => g[0]);
-        if (targetGenres.length === 0) targetGenres = ['Adventure'];
+        let targetGenres = [];
+        if (genre) {
+            targetGenres = [genre];
+        } else if (sortedGenres.length > 0) {
+            targetGenres = sortedGenres.slice(0, 3).map(g => g[0]);
+        } 
 
-        // 3. Fetch from Kitsu (Recommendations + Trending)
-        const [recResults, trendingRes] = await Promise.all([
-            Promise.all(targetGenres.map(tg => 
+        // 3. Fetch from Kitsu (Optimized safety check)
+        const recResults = targetGenres.length > 0 
+            ? await Promise.all(targetGenres.map(tg => 
                 fetch(`https://kitsu.io/api/edge/manga?filter[categories]=${tg}&sort=-averageRating&page[limit]=15`)
                 .then(r => r.json())
-            )),
-            fetch(`https://kitsu.io/api/edge/trending/manga?limit=15`).then(r => r.json())
-        ]);
+            ))
+            : [];
 
-        // 4. Unified Formatter - Now using LARGE posters to match your new UI!
+        const trendingData = await fetch(`https://kitsu.io/api/edge/trending/manga?limit=15`).then(r => r.json());
+
+        // 4. Unified Formatter
         const formatManga = (data) => (data || [])
             .filter((item, index, self) => item && index === self.findIndex((t) => t.id === item.id))
             .map(item => ({
                 kitsuId: item.id,
                 title: item.attributes.canonicalTitle || item.attributes.titles.en_jp,
-                // High-res posters for the new 140x210 scale
                 posterImage: item.attributes.posterImage?.large || item.attributes.posterImage?.medium,
                 synopsis: item.attributes.synopsis,
                 rating: item.attributes.averageRating ? (item.attributes.averageRating / 10).toFixed(1) : "N/A"
@@ -89,7 +92,7 @@ export default async function handler(req, res) {
             selectedGenre: targetGenres.join(", "),
             availableGenres: uniqueGenres,
             basedOnTaste: formatManga(recommendations),
-            trending: formatManga(trendingRes.data || [])
+            trending: formatManga(trendingData.data || []) // Using the cleaned up variable
         });
 
     } catch (apiErr) {

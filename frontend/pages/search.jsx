@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 export default function MangaSearch() {
+    const { isSignedIn, isLoaded } = useAuth();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -15,11 +17,10 @@ export default function MangaSearch() {
     const isNew = !!editingManga?.attributes; 
 
     const pageSize = 10;
-    const [offset, setOffset] = useState(0);
-    const [moreManga, setMoreManga] = useState(true);
 
     useEffect(() => {
         const fetchAddedManga = async () => {
+            if (!isSignedIn) return; // Don't fetch if not logged in
             try {
                 const res = await fetch('/api/manga/collection');
                 const dataList = await res.json();
@@ -38,8 +39,8 @@ export default function MangaSearch() {
                 console.error('Failed to load existing manga.', err);
             }
         };
-        fetchAddedManga();
-    }, []);
+        if (isLoaded) fetchAddedManga();
+    }, [isSignedIn, isLoaded]);
 
     const searchKitsu = async (e) => {
         e.preventDefault();
@@ -49,8 +50,6 @@ export default function MangaSearch() {
             const response = await fetch(`https://kitsu.io/api/edge/manga?filter[text]=${encodeURIComponent(query)}&page[limit]=${pageSize}&page[offset]=0`);
             const data = await response.json();
             setResults(data.data || []);
-            setOffset(pageSize);
-            setMoreManga(true);
         } catch (err) {
             alert(`Error: ${err.message}`);
         } finally {
@@ -92,6 +91,7 @@ export default function MangaSearch() {
                 if (response.ok) {
                     const updatedEntry = await response.json();
                     const kId = String(editingManga.mangaId?.kitsuId || editingManga.kitsuId);
+                    setAddedIds(prev => new Set(prev).add(kId));
                     setAddedMangaMap((prevMap) => new Map(prevMap).set(kId, updatedEntry));
                 }
             }
@@ -156,7 +156,6 @@ export default function MangaSearch() {
                                         <button 
                                             onClick={() => {
                                                 if (!isSignedIn) {
-                                                    // Redirect to clerk sign in
                                                     window.location.href = "/sign-in"; 
                                                     return;
                                                 }
@@ -177,7 +176,6 @@ export default function MangaSearch() {
                                                 padding: '0.6rem 1.2rem', 
                                                 borderRadius: '10px', 
                                                 background: isAdded ? '#4CAF50' : 'var(--text-main)', 
-                                                // FIXED: Use var(--bg-color) instead of hardcoded white for light mode
                                                 color: isAdded ? 'white' : 'var(--bg-color)', 
                                                 fontWeight: 700,
                                                 border: 'none',
@@ -200,7 +198,7 @@ export default function MangaSearch() {
                             
                             <div style={{ margin: '1rem 0' }}>
                                 <label style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Status</label>
-                                <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'white', border: '1px solid var(--border-color)' }}>
+                                <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                     <option value="reading">Reading</option>
                                     <option value="completed">Completed</option>
                                     <option value="plan_to_read">Plan to Read</option>
@@ -211,7 +209,7 @@ export default function MangaSearch() {
 
                             <div style={{ margin: '1rem 0' }}>
                                 <label style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Rating (1-10)</label>
-                                <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'white', border: '1px solid var(--border-color)' }}>
+                                <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                     <option value="0">No Rating</option>
                                     {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
                                 </select>
@@ -223,7 +221,7 @@ export default function MangaSearch() {
                                     value={tempNotes} 
                                     onChange={(e) => setTempNotes(e.target.value)} 
                                     placeholder="What did you think?"
-                                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'white', border: '1px solid var(--border-color)', minHeight: '80px', resize: 'vertical' }}
+                                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '80px', resize: 'vertical' }}
                                 />
                             </div>
 
