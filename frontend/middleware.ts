@@ -1,21 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-// 1. Define which routes are public
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/search',
-  '/recommendations',
-  '/sign-in(.*)', 
-  '/sign-up(.*)', 
-  '/api/manga(.*)' // Add this to allow API calls without immediate redirection
+// 1. Define which routes REQUIRE a login
+const isProtectedRoute = createRouteMatcher([
+  '/manga-list(.*)', 
+  // Add any other private routes here, like '/settings' or '/profile'
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  // 2. If the route is NOT public, protect it
-  if (!isPublicRoute(request)) {
-    // Correct usage for v6+: call .protect() directly on the auth object
-    await auth.protect(); 
+  // 2. If the user is trying to access a protected route, protect it
+  if (isProtectedRoute(request)) {
+    await auth.protect();
   }
+  // 3. Otherwise, do nothing (this allows public access to everything else)
 });
 
 export const config = {

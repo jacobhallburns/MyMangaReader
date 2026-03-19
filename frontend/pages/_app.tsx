@@ -13,6 +13,11 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
   // Handle mounting to prevent Hydration errors
   useEffect(() => {
     setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setIsDark(true);
+      document.body.classList.add('dark-theme');
+    }
   }, []);
 
   // Fetch theme from MongoDB when the user signs in
