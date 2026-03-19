@@ -155,6 +155,11 @@ export default function MangaSearch() {
                                         </p>
                                         <button 
                                             onClick={() => {
+                                                if (!isSignedIn) {
+                                                    // Redirect to clerk sign in
+                                                    window.location.href = "/sign-in"; 
+                                                    return;
+                                                }
                                                 if (isAdded) {
                                                     setEditingManga(entry);
                                                     setTempStatus(entry.status);

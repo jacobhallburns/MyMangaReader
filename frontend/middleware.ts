@@ -2,7 +2,9 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 // 1. Define which routes are public
 const isPublicRoute = createRouteMatcher([
-  '/', 
+  '/',
+  '/search',
+  '/recommendations',
   '/sign-in(.*)', 
   '/sign-up(.*)', 
   '/api/manga(.*)' // Add this to allow API calls without immediate redirection
