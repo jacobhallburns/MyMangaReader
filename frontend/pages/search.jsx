@@ -15,12 +15,11 @@ export default function MangaSearch() {
     const [tempNotes, setTempNotes] = useState('');
 
     const isNew = !!editingManga?.attributes; 
-
     const pageSize = 10;
 
     useEffect(() => {
         const fetchAddedManga = async () => {
-            if (!isSignedIn) return; // Don't fetch if not logged in
+            if (!isSignedIn) return; 
             try {
                 const res = await fetch('/api/manga/collection');
                 const dataList = await res.json();
@@ -91,7 +90,6 @@ export default function MangaSearch() {
                 if (response.ok) {
                     const updatedEntry = await response.json();
                     const kId = String(editingManga.mangaId?.kitsuId || editingManga.kitsuId);
-                    setAddedIds(prev => new Set(prev).add(kId));
                     setAddedMangaMap((prevMap) => new Map(prevMap).set(kId, updatedEntry));
                 }
             }
@@ -114,7 +112,7 @@ export default function MangaSearch() {
                                 onChange={(e) => setQuery(e.target.value)}
                                 style={{ flex: 1, padding: '0.7rem', borderRadius: '12px', border: '2px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }}
                             />
-                            <button type="submit" style={{ padding: '0.7rem 1.1rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', fontWeight: 700 }}>Search</button>
+                            <button type="submit" style={{ padding: '0.7rem 1.1rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Search</button>
                         </div>
                     </form>
                 </div>
@@ -125,66 +123,64 @@ export default function MangaSearch() {
                         const entry = addedMangaMap.get(String(m.id));
 
                         return (
-                            <li key={m.id} style={{ background: 'var(--card-bg)', border: '2px solid var(--border-color)', borderRadius: '16px', padding: '1.5rem' }}>
-                                <h2 style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>
-                                    {entry?.mangaId?.title || m.attributes?.canonicalTitle || "Unknown Title"}
-                                </h2>
-                                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
-                                    <div style={{ 
-                                        width: '150px', 
-                                        height: '225px', 
-                                        backgroundColor: '#2a2a2a', 
-                                        borderRadius: '12px', 
-                                        flexShrink: 0, 
-                                        overflow: 'hidden',
-                                        border: '1px solid var(--border-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
-                                        <img 
-                                            src={m.attributes?.posterImage?.large || m.attributes?.posterImage?.medium || "/placeholder.png"} 
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                            alt={m.attributes?.canonicalTitle || "manga cover"}
-                                        />
-                                    </div>
+                            <li key={m.id} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '24px', padding: '1.5rem', display: 'flex', gap: '1.5rem' }}>
+                                <div style={{ 
+                                    width: '140px', 
+                                    height: '210px', 
+                                    backgroundColor: '#1a1a1a', 
+                                    borderRadius: '16px', 
+                                    flexShrink: 0, 
+                                    overflow: 'hidden',
+                                    border: '1px solid var(--border-color)',
+                                    boxShadow: '0 8px 16px rgba(0,0,0,0.4)'
+                                }}>
+                                    <img 
+                                        src={m.attributes?.posterImage?.large || m.attributes?.posterImage?.medium || "/placeholder.png"} 
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                        alt={m.attributes?.canonicalTitle || "manga cover"}
+                                    />
+                                </div>
 
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-                                            {m.attributes?.synopsis?.slice(0, 250) || "No synopsis available."}...
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                    <div>
+                                        <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.6rem 0', fontWeight: '800' }}>
+                                            {entry?.mangaId?.title || m.attributes?.canonicalTitle || "Unknown Title"}
+                                        </h2>
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            {m.attributes?.synopsis || "No synopsis available."}
                                         </p>
-                                        <button 
-                                            onClick={() => {
-                                                if (!isSignedIn) {
-                                                    window.location.href = "/sign-in"; 
-                                                    return;
-                                                }
-                                                if (isAdded) {
-                                                    setEditingManga(entry);
-                                                    setTempStatus(entry.status);
-                                                    setTempRating(entry.rating || 0);
-                                                    setTempNotes(entry.notes || '');
-                                                } else {
-                                                    setEditingManga(m);
-                                                    setTempStatus('plan_to_read');
-                                                    setTempRating(0);
-                                                    setTempNotes('');
-                                                }
-                                            }}
-                                            style={{ 
-                                                marginTop: '1rem', 
-                                                padding: '0.6rem 1.2rem', 
-                                                borderRadius: '10px', 
-                                                background: isAdded ? '#4CAF50' : 'var(--text-main)', 
-                                                color: isAdded ? 'white' : 'var(--bg-color)', 
-                                                fontWeight: 700,
-                                                border: 'none',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            {isAdded ? 'Edit' : '+ Add to My List'}
-                                        </button>
                                     </div>
+                                    <button 
+                                        onClick={() => {
+                                            if (!isSignedIn) {
+                                                window.location.assign("/sign-in"); 
+                                                return;
+                                            }
+                                            if (isAdded) {
+                                                setEditingManga(entry);
+                                                setTempStatus(entry.status);
+                                                setTempRating(entry.rating || 0);
+                                                setTempNotes(entry.notes || '');
+                                            } else {
+                                                setEditingManga(m);
+                                                setTempStatus('plan_to_read');
+                                                setTempRating(0);
+                                                setTempNotes('');
+                                            }
+                                        }}
+                                        style={{ 
+                                            marginTop: '1rem', 
+                                            padding: '0.6rem 1.2rem', 
+                                            borderRadius: '12px', 
+                                            background: isAdded ? '#4CAF50' : 'var(--text-main)', 
+                                            color: isAdded ? 'white' : 'var(--bg-color)', 
+                                            fontWeight: 700,
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {isAdded ? 'Edit' : '+ Add to List'}
+                                    </button>
                                 </div>
                             </li>
                         );
@@ -192,13 +188,13 @@ export default function MangaSearch() {
                 </ul>
 
                 {editingManga && (
-                    <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-                        <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '400px', background: 'var(--card-bg)', borderRadius: '18px', border: '2px solid var(--border-color)', padding: '1.5rem' }}>
-                            <h2 style={{ color: 'var(--text-main)' }}>{isNew ? 'Add to List' : 'Edit Entry'}</h2>
+                    <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
+                        <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+                            <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>{isNew ? 'Add to List' : 'Edit Entry'}</h2>
                             
-                            <div style={{ margin: '1rem 0' }}>
-                                <label style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Status</label>
-                                <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
+                            <div style={{ margin: '1.2rem 0' }}>
+                                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Status</label>
+                                <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
                                     <option value="reading">Reading</option>
                                     <option value="completed">Completed</option>
                                     <option value="plan_to_read">Plan to Read</option>
@@ -207,25 +203,25 @@ export default function MangaSearch() {
                                 </select>
                             </div>
 
-                            <div style={{ margin: '1rem 0' }}>
-                                <label style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Rating (1-10)</label>
-                                <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
+                            <div style={{ margin: '1.2rem 0' }}>
+                                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Rating (1-10)</label>
+                                <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
                                     <option value="0">No Rating</option>
                                     {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
                                 </select>
                             </div>
 
-                            <div style={{ margin: '1rem 0' }}>
-                                <label style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Notes / Comments</label>
+                            <div style={{ margin: '1.2rem 0' }}>
+                                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Notes</label>
                                 <textarea 
                                     value={tempNotes} 
                                     onChange={(e) => setTempNotes(e.target.value)} 
                                     placeholder="What did you think?"
-                                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '80px', resize: 'vertical' }}
+                                    style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '100px', fontSize: '1rem', resize: 'none' }}
                                 />
                             </div>
 
-                            <button onClick={addOrUpdateManga} style={{ width: '100%', padding: '0.7rem', background: '#4CAF50', color: 'white', borderRadius: '12px', fontWeight: 900, border: 'none', cursor: 'pointer' }}>
+                            <button onClick={addOrUpdateManga} style={{ width: '100%', padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 900, border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
                                 {isNew ? '+ Add Manga' : 'Save Changes'}
                             </button>
                         </div>

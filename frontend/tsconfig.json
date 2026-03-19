@@ -24,6 +24,6 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "pages/recommendation.jsx"  ],
   "exclude": ["node_modules"]
 }

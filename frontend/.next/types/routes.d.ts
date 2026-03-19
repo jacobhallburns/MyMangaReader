@@ -4,7 +4,7 @@
 type AppRoutes = never
 type PageRoutes = "/" | "/_app" | "/manga-list" | "/recommendation" | "/search"
 type LayoutRoutes = never
-type RedirectRoutes = never
+type RedirectRoutes = "/"
 type RewriteRoutes = never
 type Routes = AppRoutes | PageRoutes | LayoutRoutes | RedirectRoutes | RewriteRoutes
 
