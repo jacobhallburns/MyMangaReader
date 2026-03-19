@@ -1,9 +1,10 @@
+import type { NextApiRequest, NextApiResponse } from 'next'; // 1. Add this import
 import dbConnect from '../../../lib/dbConnect';
 import Manga from '../../../lib/api/Manga';
 import UserManga from '../../../lib/api/UserManga';
 import { getAuth } from '@clerk/nextjs/server';
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   await dbConnect();
