@@ -5,8 +5,5 @@
   "/": "pages/index.js",
   "/manga-list": "pages/manga-list.js",
   "/api/user/config": "pages/api/user/config.js",
-  "/recommendation": "pages/recommendation.js",
-  "/api/manga/collection": "pages/api/manga/collection.js",
-  "/search": "pages/search.js",
-  "/api/manga/recommendations": "pages/api/manga/recommendations.js"
+  "/api/manga/collection": "pages/api/manga/collection.js"
 }

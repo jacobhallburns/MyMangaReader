@@ -5,17 +5,17 @@ import { dark } from '@clerk/themes';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-function ThemeWrapper({ Component, pageProps }: AppProps) {
-  const [isDark, setIsDark] = useState(false);
+// 1. This component handles the UI and the Database Syncing
+function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
   const [mounted, setMounted] = useState(false);
   const { isLoaded, isSignedIn } = useAuth(); 
 
-  // 1. Handle mounting to prevent Hydration/Client-side errors
+  // Handle mounting to prevent Hydration errors
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 2. Handle theme fetching
+  // Fetch theme from MongoDB when the user signs in
   useEffect(() => {
     if (mounted && isLoaded && isSignedIn) {
       fetch('/api/user/config')
@@ -28,38 +28,16 @@ function ThemeWrapper({ Component, pageProps }: AppProps) {
         })
         .catch((err) => console.error("Failed to load theme from DB", err));
     } else if (mounted) {
+        // Fallback for logged-out users
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') {
           setIsDark(true);
           document.body.classList.add('dark-theme');
         }
     }
-  }, [mounted, isLoaded, isSignedIn]);
+  }, [mounted, isLoaded, isSignedIn, setIsDark]);
 
-  const toggleTheme = async () => {
-    const newTheme = !isDark ? 'dark' : 'light';
-    if (!isDark) {
-      document.body.classList.add('dark-theme');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark-theme');
-      localStorage.setItem('theme', 'light');
-    }
-    setIsDark(!isDark);
-
-    if (isSignedIn) {
-      await fetch('/api/user/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: newTheme }),
-      });
-    }
-  };
-
-  // Prevent rendering until mounted to avoid the client-side exception
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
   return (
     <div className={isDark ? 'dark-theme' : ''}>
@@ -79,10 +57,30 @@ function ThemeWrapper({ Component, pageProps }: AppProps) {
             <Link href="/manga-list" style={{ fontWeight: 600, color: 'var(--text-main)' }}>Manga List</Link>
             <Link href="/recommendation" style={{ fontWeight: 600, color: 'var(--text-main)' }}>Recommendations</Link>
             <Link href="/search" style={{ fontWeight: 600, color: 'var(--text-main)' }}>Add Manga</Link>
-            <button onClick={toggleTheme} style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', padding: '0.2rem 0.5rem' }}>
+            
+            {/* Theme Toggle Button is now handled by the parent's toggle function via props if needed, 
+                but we'll define it here for simplicity since we have access to setIsDark */}
+            <button 
+              onClick={async () => {
+                const newTheme = !isDark ? 'dark' : 'light';
+                setIsDark(!isDark);
+                if (!isDark) document.body.classList.add('dark-theme');
+                else document.body.classList.remove('dark-theme');
+                localStorage.setItem('theme', newTheme);
+
+                if (isSignedIn) {
+                  await fetch('/api/user/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme: newTheme }),
+                  });
+                }
+              }} 
+              style={{ background: 'none', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', padding: '0.2rem 0.5rem' }}
+            >
               {isDark ? '☀️' : '🌙'}
             </button>
-            <UserButton afterSignOutUrl="/sign-in" />
+            <UserButton />
           </nav>
         </header>
       </div>
@@ -91,12 +89,20 @@ function ThemeWrapper({ Component, pageProps }: AppProps) {
   );
 }
 
+// 2. The Root App provides the SINGLE ClerkProvider
 export default function App(props: AppProps) {
-  // We apply the 'appearance' here so it affects all Clerk components globally
-  // We use props.pageProps.isDark if available, or just rely on the wrapper's state
+  const [isDark, setIsDark] = useState(false);
+
   return (
-    <ClerkProvider {...props.pageProps}>
-      <ThemeWrapper {...props} />
+    <ClerkProvider 
+      {...props.pageProps}
+      afterSignOutUrl="/"
+      appearance={{
+        baseTheme: isDark ? dark : undefined,
+        variables: { colorPrimary: '#cc0000' }
+      }}
+    >
+      <ThemeWrapper {...props} isDark={isDark} setIsDark={setIsDark} />
     </ClerkProvider>
   );
 }
