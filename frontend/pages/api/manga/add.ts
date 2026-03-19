@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next'; // 1. Add this import
+import type { NextApiRequest, NextApiResponse } from 'next';
 import dbConnect from '../../../lib/dbConnect';
 import Manga from '../../../lib/api/Manga';
 import UserManga from '../../../lib/api/UserManga';
@@ -14,27 +14,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { kitsuData, status } = req.body;
 
   try {
-    // 1. Ensure the Manga exists in our Global Cache
     const globalManga = await Manga.findOneAndUpdate(
       { kitsuId: kitsuData.id },
       {
         title: kitsuData.attributes.canonicalTitle || kitsuData.attributes.titles?.en_jp || kitsuData.attributes.slug,
         synopsis: kitsuData.attributes.synopsis,
-        // FALLBACKS: Try large, then medium, then small
+        // PORTRAIT ART: This is what you'll use for your list view
         posterImage: kitsuData.attributes.posterImage?.large || 
                     kitsuData.attributes.posterImage?.medium || 
-                    kitsuData.attributes.posterImage?.small,
+                    kitsuData.attributes.posterImage?.original,
+        // LANDSCAPE ART: This is the wide banner (keep it for potential profile headers)
         coverImage: kitsuData.attributes.coverImage?.large || 
-                    kitsuData.attributes.coverImage?.original,
+                    kitsuData.attributes.coverImage?.original ||
+                    kitsuData.attributes.posterImage?.large, // Fallback to poster if no banner exists
         chapterCount: kitsuData.attributes.chapterCount,
         mangaType: kitsuData.type,
       },
       { upsert: true, new: true }
     );
 
-    // 2. Create or Update the User's personal relationship with this Manga
     const userEntry = await UserManga.findOneAndUpdate(
-      { userId, mangaId: globalManga._id }, // Ensure this is the _id object
+      { userId, mangaId: globalManga._id },
       { 
         status: status || 'plan_to_read',
         rating: req.body.rating || 0,

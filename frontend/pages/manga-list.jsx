@@ -5,12 +5,12 @@ export default function MangaList() {
     const [manga, setManga] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // search / filter / sort
+    // Search / Filter / Sort
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     const [sortBy, setSortBy] = useState('Updated'); 
 
-    // modal state
+    // Modal State
     const [editingManga, setEditingManga] = useState(null);
     const [tempStatus, setTempStatus] = useState('plan_to_read');
     const [tempRating, setTempRating] = useState(0);
@@ -18,16 +18,13 @@ export default function MangaList() {
 
     useEffect(() => {
         let cancelled = false;
-
         const fetchManga = async () => {
             try {
                 const res = await fetch('/api/manga/collection');
-
                 if (res.status === 503) {
                     if (!cancelled) setTimeout(fetchManga, 300);
                     return;
                 }
-
                 const data = await res.json();
                 if (!cancelled) setManga(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -37,7 +34,6 @@ export default function MangaList() {
                 if (!cancelled) setLoading(false);
             }
         };
-
         fetchManga();
         return () => { cancelled = true; };
     }, []);
@@ -45,7 +41,6 @@ export default function MangaList() {
     const visibleManga = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
         let list = [...manga].filter((m) => {
-            // Updated to check nested mangaId for title/synopsis
             const statusOk = statusFilter === 'All' || (m.status || '').toLowerCase() === statusFilter.toLowerCase();
             if (!q) return statusOk;
             const title = (m.mangaId?.title || m.title || '').toLowerCase();
@@ -56,24 +51,16 @@ export default function MangaList() {
         if (sortBy === 'TitleAZ') list.sort((a, b) => (a.mangaId?.title || '').localeCompare(b.mangaId?.title || ''));
         else if (sortBy === 'TitleZA') list.sort((a, b) => (b.mangaId?.title || '').localeCompare(a.mangaId?.title || ''));
         else if (sortBy === 'RatingHigh') list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
-        else if (sortBy === 'RatingLow') list.sort((a, b) => (a.rating ?? 999) - (b.rating ?? 999));
-
         return list;
     }, [manga, searchTerm, statusFilter, sortBy]);
 
     const handleSave = async () => {
         try {
-            // Updated to hit the dynamic /api/manga/[id] route
             const res = await fetch(`/api/manga/${editingManga._id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    rating: tempRating,
-                    status: tempStatus,
-                    notes: tempNotes
-                }),
+                body: JSON.stringify({ rating: tempRating, status: tempStatus, notes: tempNotes }),
             });
-
             if (res.ok) {
                 const updatedData = await res.json();
                 setManga(prev => prev.map(m => m._id === editingManga._id 
@@ -89,12 +76,10 @@ export default function MangaList() {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm("Are you sure you want to remove this from your list?")) return;
+        if (!window.confirm("Remove this from your list?")) return;
         try {
             const res = await fetch(`/api/manga/${editingManga._id}`, { method: 'DELETE' });
-            if (res.ok) {
-                setManga(prev => prev.filter(m => m._id !== editingManga._id));
-            }
+            if (res.ok) setManga(prev => prev.filter(m => m._id !== editingManga._id));
         } catch (err) {
             alert(`Failed to delete: ${err.message}`);
         } finally {
@@ -104,7 +89,7 @@ export default function MangaList() {
 
     if (loading) return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ color: 'var(--text-main)' }}>Loading your collection...</p>
+            <p style={{ color: 'var(--text-main)' }}>Loading collection...</p>
         </div>
     );
 
@@ -118,10 +103,10 @@ export default function MangaList() {
                             value={searchTerm} 
                             onChange={(e) => setSearchTerm(e.target.value)} 
                             placeholder="Search List..." 
-                            style={{ padding: '0.7rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }} 
+                            style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }} 
                         />
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.5rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)' }}>
+                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                 <option value="All">All Status</option>
                                 <option value="reading">Reading</option>
                                 <option value="completed">Completed</option>
@@ -129,7 +114,7 @@ export default function MangaList() {
                                 <option value="on_hold">On Hold</option>
                                 <option value="dropped">Dropped</option>
                             </select>
-                            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '0.5rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)' }}>
+                            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                 <option value="Updated">Default</option>
                                 <option value="TitleAZ">A → Z</option>
                                 <option value="RatingHigh">★ Top</option>
@@ -138,67 +123,90 @@ export default function MangaList() {
                     </div>
                 </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {visibleManga.map((entry) => (
                         <li key={entry._id} style={{ 
                             background: 'var(--card-bg)', 
                             border: '1px solid var(--border-color)', 
-                            borderRadius: '16px', 
-                            padding: '1rem',
+                            borderRadius: '24px', 
+                            padding: '1.5rem',
                             display: 'flex',
-                            flexDirection: 'column',
-                            gap: '1rem'
+                            gap: '1.5rem',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
                         }}>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                {entry.mangaId?.posterImage && (
-                                    <img 
-                                        src={entry.mangaId?.posterImage || entry.posterImage || entry.coverImage} 
-                                        alt={entry.mangaId?.title || entry.title} 
-                                        style={{ width: '80px', height: '120px', objectFit: 'cover', borderRadius: '8px' }} 
-                                    />
-                                )}
-                                <div style={{ flex: 1 }}>
-                                    <h2 style={{ color: 'var(--text-accent)', fontSize: '1.1rem', margin: '0 0 0.5rem 0' }}>
+                            {/* Poster View Container */}
+                            <div style={{ 
+                                width: '140px', 
+                                height: '210px', 
+                                backgroundColor: '#1a1a1a', 
+                                borderRadius: '16px', 
+                                flexShrink: 0, 
+                                overflow: 'hidden',
+                                border: '1px solid var(--border-color)', 
+                                boxShadow: '0 8px 16px rgba(0,0,0,0.4)'
+                            }}>
+                                <img 
+                                    src={entry.mangaId?.posterImage || "/placeholder.png"}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                    alt={entry.mangaId?.title || "manga cover"} 
+                                />
+                            </div>
+
+                            {/* Content Area */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.2rem 0' }}>
+                                <div>
+                                    <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.6rem 0', fontWeight: '800' }}>
                                         {entry.mangaId?.title || entry.title}
                                     </h2>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 0.5rem 0' }}>
-                                        {entry.mangaId?.synopsis?.slice(0, 100) || entry.synopsis?.slice(0, 100)}...
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 1rem 0' }}>
+                                        {entry.mangaId?.synopsis?.slice(0, 200) || entry.synopsis?.slice(0, 200)}...
                                     </p>
+                                    
                                     {entry.notes && (
-                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontStyle: 'italic', background: 'rgba(255,255,255,0.05)', padding: '0.4rem', borderRadius: '4px' }}>
-                                            💬 {entry.notes}
-                                        </p>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '0.7rem 1rem', borderRadius: '12px', borderLeft: '4px solid var(--accent-green)', opacity: 0.9 }}>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--accent-green)' }}>Note:</span> {entry.notes}
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                            
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem' }}>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--accent-green)', textTransform: 'capitalize' }}>
-                                    {entry.status.replace(/_/g, ' ')} • {entry.rating > 0 ? `${entry.rating} ★` : 'No Rating'}
-                                </span>
-                                <button onClick={() => { 
-                                    setEditingManga(entry); 
-                                    setTempStatus(entry.status); 
-                                    setTempRating(entry.rating || 0);
-                                    setTempNotes(entry.notes || '');
-                                }} 
-                                style={{ padding: '0.4rem 1rem', fontSize: '0.9rem', borderRadius: '8px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', fontWeight: 'bold' }}>
-                                    Edit
-                                </button>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                                    <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center' }}>
+                                        <span style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'rgba(76, 175, 80, 0.15)', color: 'var(--accent-green)', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            {entry.status.replace(/_/g, ' ')}
+                                        </span>
+                                        {entry.rating > 0 && (
+                                            <span style={{ color: '#FFD700', fontSize: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                ★ {entry.rating}
+                                            </span>
+                                        )}
+                                    </div>
+                                    
+                                    <button 
+                                        onClick={() => { 
+                                            setEditingManga(entry); 
+                                            setTempStatus(entry.status); 
+                                            setTempRating(entry.rating || 0);
+                                            setTempNotes(entry.notes || '');
+                                        }} 
+                                        style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem' }}
+                                    >
+                                        Edit Entry
+                                    </button>
+                                </div>
                             </div>
                         </li>
                     ))}
                 </ul>
 
-                {/* MODAL */}
+                {/* MODAL SECTION */}
                 {editingManga && (
-                    <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-                        <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '400px', background: 'var(--card-bg)', borderRadius: '18px', border: '1px solid var(--border-color)', padding: '1.5rem' }}>
-                            <h2 style={{ color: 'var(--text-main)', marginTop: 0 }}>Edit Entry</h2>
+                    <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
+                        <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+                            <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>Edit Entry</h2>
                             
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ color: 'gray', fontSize: '0.8rem' }}>Status</label>
-                                <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', marginTop: '0.3rem' }}>
+                            <div style={{ marginBottom: '1.2rem' }}>
+                                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Status</label>
+                                <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
                                     <option value="reading">Reading</option>
                                     <option value="completed">Completed</option>
                                     <option value="plan_to_read">Plan to Read</option>
@@ -207,48 +215,27 @@ export default function MangaList() {
                                 </select>
                             </div>
 
-                            <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ color: 'gray', fontSize: '0.8rem' }}>Rating</label>
-                                <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', marginTop: '0.3rem' }}>
+                            <div style={{ marginBottom: '1.2rem' }}>
+                                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Rating</label>
+                                <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
                                     <option value="0">No Rating</option>
                                     {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
                                 </select>
                             </div>
 
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', display: 'block', marginBottom: '0.5rem' }}>Notes</label>
+                            <div style={{ marginBottom: '2rem' }}>
+                                <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Notes</label>
                                 <textarea 
                                     value={tempNotes} 
                                     onChange={(e) => setTempNotes(e.target.value)} 
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '0.7rem', 
-                                        borderRadius: '10px', 
-                                        background: 'var(--bg-color)', 
-                                        color: 'var(--text-main)', 
-                                        border: '1px solid var(--border-color)',
-                                        minHeight: '80px',
-                                        boxSizing: 'border-box', // This prevents the box from "pushing out"
-                                        fontSize: '0.9rem'
-                                    }} 
+                                    style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '100px', fontSize: '1rem', resize: 'none' }} 
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                <button 
-                                    onClick={handleSave} 
-                                    style={{ flex: 2, padding: '0.8rem', background: '#4CAF50', color: 'var(--text-main)', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
-                                >
-                                    Save Changes
-                                </button>
-                                <button 
-                                    onClick={handleDelete} 
-                                    style={{ flex: 1, padding: '0.8rem', background: 'rgba(255,68,68,0.1)', color: '#ff4444', borderRadius: '12px', border: '1px solid #ff4444', cursor: 'pointer' }}
-                                >
-                                    Delete
-                                </button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button onClick={handleSave} style={{ flex: 2, padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>Save Changes</button>
+                                <button onClick={handleDelete} style={{ flex: 1, padding: '1rem', background: 'rgba(255,68,68,0.1)', color: '#ff4444', borderRadius: '14px', border: '1px solid #ff4444', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
                             </div>
-
                         </div>
                     </div>
                 )}

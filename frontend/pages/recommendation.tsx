@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 interface Manga {
     kitsuId: string;
     title: string;
-    coverImage?: string;
+    posterImage?: string;
     synopsis?: string;
     rating?: number | null;
     status?: string;
@@ -29,7 +29,7 @@ const RecCard = ({ manga }: { manga: Manga }) => {
                 body: JSON.stringify({
                     kitsuId: manga.kitsuId,
                     title: manga.title,
-                    coverImage: manga.coverImage,
+                    posterImage: manga.posterImage,
                     synopsis: manga.synopsis,
                     status: 'Plan-to-read', 
                     rating: null
@@ -64,9 +64,9 @@ const RecCard = ({ manga }: { manga: Manga }) => {
                 </h2>
 
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
-                    {manga.coverImage && (
+                    {manga.posterImage && (
                         <img
-                            src={manga.coverImage}
+                            src={manga.posterImage}
                             alt={manga.title}
                             style={{
                                 width: '100px',

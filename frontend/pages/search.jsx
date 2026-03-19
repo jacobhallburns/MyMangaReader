@@ -122,14 +122,12 @@ export default function MangaSearch() {
                 <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1.5rem' }}>
                     {results.map((m) => {
                         const isAdded = addedIds.has(String(m.id));
-                        // 1. Look up the database entry so we can use the saved image and title
                         const entry = addedMangaMap.get(String(m.id));
 
                         return (
                             <li key={m.id} style={{ background: 'var(--card-bg)', border: '2px solid var(--border-color)', borderRadius: '16px', padding: '1.5rem' }}>
                                 <h2 style={{ color: 'var(--text-main)', marginBottom: '1rem' }}>
-                                    {/* Use database title if available, fallback to Kitsu attributes */}
-                                    {entry?.mangaId?.title || m.attributes?.canonicalTitle || m.attributes?.titles?.en_jp || "Unknown Title"}
+                                    {entry?.mangaId?.title || m.attributes?.canonicalTitle || "Unknown Title"}
                                 </h2>
                                 <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
                                     <div style={{ 
@@ -145,10 +143,9 @@ export default function MangaSearch() {
                                         justifyContent: 'center'
                                     }}>
                                         <img 
-                                            // 2. Prioritize the database image (posterImage), then fallback to Kitsu sizes
-                                            src={entry?.mangaId?.posterImage || m.attributes?.posterImage?.large || m.attributes?.posterImage?.medium || m.attributes?.posterImage?.small || "/placeholder-image.png"} 
+                                            src={m.attributes?.posterImage?.large || m.attributes?.posterImage?.medium || "/placeholder.png"} 
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                            alt={entry?.mangaId?.title || m.attributes?.canonicalTitle || "manga cover"} 
+                                            alt={m.attributes?.canonicalTitle || "manga cover"}
                                         />
                                     </div>
 
@@ -175,7 +172,7 @@ export default function MangaSearch() {
                                                 padding: '0.6rem 1.2rem', 
                                                 borderRadius: '10px', 
                                                 background: isAdded ? '#4CAF50' : 'var(--text-main)', 
-                                                // 3. Use theme variable for color instead of hardcoded 'white'
+                                                // FIXED: Use var(--bg-color) instead of hardcoded white for light mode
                                                 color: isAdded ? 'white' : 'var(--bg-color)', 
                                                 fontWeight: 700,
                                                 border: 'none',

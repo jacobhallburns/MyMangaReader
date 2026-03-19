@@ -4,7 +4,7 @@ const MangaSchema = new mongoose.Schema({
     kitsuId: String,
     title: String,
     genres: [String],
-    coverImage: String,
+    posterImage: String,
     status: {
         type: String,
         enum: ['Reading', 'Completed', 'Plan-to-read'],

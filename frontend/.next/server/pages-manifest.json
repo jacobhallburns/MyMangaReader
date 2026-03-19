@@ -2,9 +2,10 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
+  "/api/user/config": "pages/api/user/config.js",
+  "/": "pages/index.js",
   "/manga-list": "pages/manga-list.js",
   "/api/manga/collection": "pages/api/manga/collection.js",
   "/search": "pages/search.js",
-  "/api/manga/[id]": "pages/api/manga/[id].js",
-  "/api/user/config": "pages/api/user/config.js"
+  "/api/manga/add": "pages/api/manga/add.js"
 }

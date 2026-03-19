@@ -93,7 +93,7 @@ export default async function handler(req, res) {
             .map(item => ({
                 kitsuId: item.id,
                 title: item.attributes.titles.en || item.attributes.titles.en_jp,
-                coverImage: item.attributes.posterImage?.small,
+                posterImage: item.attributes.posterImage?.small,
                 synopsis: item.attributes.synopsis,
                 status: 'Recommended',
                 rating: item.attributes.averageRating ? Math.round(item.attributes.averageRating / 10) : null
