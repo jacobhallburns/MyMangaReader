@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 
 export default function MangaSearch() {
     const { isSignedIn, isLoaded } = useAuth();
+    const { redirectToSignIn } = useClerk();
+
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -153,8 +156,7 @@ export default function MangaSearch() {
                                     <button 
                                         onClick={() => {
                                             if (!isSignedIn) {
-                                                window.location.assign("/sign-in"); 
-                                                return;
+                                                return redirectToSignIn();
                                             }
                                             if (isAdded) {
                                                 setEditingManga(entry);

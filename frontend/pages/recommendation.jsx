@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 
 const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
     const { isSignedIn } = useUser();
+    const { redirectToSignIn } = useClerk();
     const [showModal, setShowModal] = useState(false);
     const [tempStatus, setTempStatus] = useState('plan_to_read');
     const [tempRating, setTempRating] = useState(0);
+    const [tempNotes, setTempNotes] = useState('');
 
     const handleConfirmAdd = async () => {
         try {
@@ -69,7 +72,7 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
                         onClick={() => {
                             if (!isSignedIn) {
                                 // Direct browser redirect to avoid Next.js router 404s
-                                window.location.assign("/sign-in");
+                                redirectToSignIn(); 
                                 return;
                             }
                             if (!isAlreadyAdded) setShowModal(true);
@@ -91,17 +94,46 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
             </div>
 
             {showModal && (
-                <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
-                    <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--card-bg)', padding: '2rem', borderRadius: '24px', width: '90%', maxWidth: '350px', border: '1px solid var(--border-color)' }}>
-                        <h3 style={{ color: 'var(--text-main)', marginTop: 0 }}>Add {manga.title}</h3>
-                        <select value={tempStatus} onChange={e => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.7rem', margin: '0.5rem 0 1.5rem 0', borderRadius: '10px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
-                            <option value="plan_to_read">Plan to Read</option>
-                            <option value="reading">Reading</option>
-                            <option value="completed">Completed</option>
-                        </select>
+                <div onClick={() => setShowModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(4px)' }}>
+                    <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+                        <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>Add to List</h2>
+                        
+                        <div style={{ margin: '1.2rem 0' }}>
+                            <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Status</label>
+                            <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
+                                <option value="reading">Reading</option>
+                                <option value="completed">Completed</option>
+                                <option value="plan_to_read">Plan to Read</option>
+                                <option value="on_hold">On Hold</option>
+                                <option value="dropped">Dropped</option>
+                            </select>
+                        </div>
+
+                        <div style={{ margin: '1.2rem 0' }}>
+                            <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Rating (1-10)</label>
+                            <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
+                                <option value="0">No Rating</option>
+                                {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                            </select>
+                        </div>
+
+                        <div style={{ margin: '1.2rem 0' }}>
+                            <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Notes</label>
+                            <textarea 
+                                value={tempNotes} 
+                                onChange={(e) => setTempNotes(e.target.value)} 
+                                placeholder="What did you think?"
+                                style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '100px', fontSize: '1rem', resize: 'none' }}
+                            />
+                        </div>
+
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button onClick={handleConfirmAdd} style={{ flex: 1, padding: '0.8rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>Confirm</button>
-                            <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '0.8rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>Cancel</button>
+                            <button onClick={handleConfirmAdd} style={{ flex: 1, padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 900, border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
+                                + Add Manga
+                            </button>
+                            <button onClick={() => setShowModal(false)} style={{ padding: '1rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '14px', cursor: 'pointer' }}>
+                                Cancel
+                            </button>
                         </div>
                     </div>
                 </div>

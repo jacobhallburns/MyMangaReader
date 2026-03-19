@@ -4,6 +4,7 @@ import { ClerkProvider, UserButton, useAuth } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 // 1. This component handles the UI and the Database Syncing
 function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
@@ -41,10 +42,10 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
         }
     }
   }, [mounted, isLoaded, isSignedIn, setIsDark]);
-
+  const router = useRouter();
   const addMangaToList = async (kitsuData: any, status: string = 'plan_to_read') => {
     if (!isSignedIn) {
-      alert("Please sign in to add manga to your list!");
+      router.push('/sign-in'); // Or your specific Clerk sign-in path
       return;
     }
 
