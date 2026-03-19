@@ -37,6 +37,27 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
     }
   }, [mounted, isLoaded, isSignedIn, setIsDark]);
 
+  const addMangaToList = async (kitsuData: any, status: string = 'plan_to_read') => {
+    if (!isSignedIn) {
+      alert("Please sign in to add manga to your list!");
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/manga/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kitsuData, status }),
+      });
+
+      if (response.ok) {
+        alert(`${kitsuData.attributes.canonicalTitle} added to your list!`);
+      }
+    } catch (err) {
+      console.error("Error adding manga:", err);
+    }
+  };
+
   if (!mounted) return null;
 
   return (
@@ -84,7 +105,7 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
           </nav>
         </header>
       </div>
-      <Component {...pageProps} isDark={isDark} />
+      <Component {...pageProps} isDark={isDark} addMangaToList={addMangaToList} />
     </div>
   );
 }

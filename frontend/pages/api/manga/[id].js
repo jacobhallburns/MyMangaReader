@@ -1,45 +1,48 @@
-import dbConnect from '../../../lib/dbConnect.js';
-import Manga from '../../../lib/api/Manga.js';
-import { getAuth } from '@clerk/nextjs/server'; // Import Clerk Auth
+import dbConnect from '../../../lib/dbConnect';
+import UserManga from '../../../lib/api/UserManga';
+import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
     await dbConnect();
     const { userId } = getAuth(req);
-    const { id } = req.query;
+    const { id } = req.query; 
 
-    if (!userId) return res.status(401).end();
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    if (req.method === 'DELETE') {
+    if (req.method === 'PATCH') {
         try {
-            // Find AND Delete only if it belongs to this user
-            const deleted = await Manga.findOneAndDelete({ _id: id, userId });
-            if (!deleted) return res.status(404).json({ error: "Unauthorized or Not Found" });
-            res.status(204).send();
-        } catch (err) {
-            res.status(400).json({ error: err.message });
-        }
-    } 
-    
-    else if (req.method === 'PATCH') {
-        try {
-            // Find AND Update only if it belongs to this user
-            const updatedManga = await Manga.findOneAndUpdate(
+            const { status, rating, notes } = req.body;
+            
+            const updated = await UserManga.findOneAndUpdate(
                 { _id: id, userId }, 
                 { 
-                    $set: {
-                        status: req.body.status,
-                        rating: req.body.rating
-                    }
+                    $set: { 
+                        status, 
+                        rating, 
+                        notes 
+                    } 
                 }, 
                 { new: true }
             );
-            if (!updatedManga) return res.status(404).json({ error: "Unauthorized or Not Found" });
-            res.status(200).json(updatedManga);
+
+            if (!updated) return res.status(404).json({ error: "Entry not found" });
+            return res.status(200).json(updated);
         } catch (err) {
-            res.status(400).json({ error: err.message });
+            console.error("Update Error:", err);
+            return res.status(400).json({ error: err.message });
         }
     } 
-    else {
-        res.status(405).end();
+    
+    if (req.method === 'DELETE') {
+        try {
+            const deleted = await UserManga.findOneAndDelete({ _id: id, userId });
+            if (!deleted) return res.status(404).json({ error: "Entry not found" });
+            return res.status(204).send();
+        } catch (err) {
+            return res.status(400).json({ error: err.message });
+        }
     }
+
+    res.setHeader('Allow', ['PATCH', 'DELETE']);
+    return res.status(405).end();
 }
