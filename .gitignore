@@ -2,8 +2,13 @@
 **/node_modules/
 **/npm-debug.log
 
+# Next.js build output
+.next/
+out/
+
 # Environment variables
 .env
+.env*.local
 
 # Local MongoDB data
 db/
@@ -20,5 +25,6 @@ Thumbs.db
 # VSCode or IDE files
 .vscode/
 .idea/
+
+# Vercel
 .vercel
-.env*.local
