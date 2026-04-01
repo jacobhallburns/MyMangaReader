@@ -1,8 +1,0 @@
-{
-  "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/recommendation": "pages/recommendation.js",
-  "/api/manga/recommendations": "pages/api/manga/recommendations.js",
-  "/search": "pages/search.js"
-}
