@@ -1,49 +1,29 @@
 # MyMangaReader
-A website for keeping track of manga read, and finding related manga
 
+A full-stack web application for tracking manga, managing a personal collection, and discovering new series.
 
-## Tools we are using
+Users can search for manga, save them to their list, and manage progress with statuses and ratings. The app integrates with the Kitsu API for real-time data while using a custom backend for persistent storage.
 
-- **Frontend**: [Next.js](https://nextjs.org/)
-- **Backend**: [Node.js](https://nodejs.org/en) + [Express](https://expressjs.com/)
-- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
-- **API**: [Kitsu API](https://api-docs.kitsu.cloud/)
-- **Containerization**: Docker
+## 🌐 Live Site
 
-## Docker Settings:
+[https://my-manga-reader-pi.vercel.app](https://my-manga-reader-pi.vercel.app/)
 
-WSL needs to be enabled for Docker Desktop.<br>
+---
 
-Put this in your Docker Desktop Settings (replace what was in there please) <br>
+## 🚀 Features
 
-```
-{
-  "builder": {
-    "gc": {
-      "defaultKeepStorage": "20GB",
-      "enabled": true
-    }
-  },
-  "dns": [
-    "8.8.8.8",
-    "1.1.1.1"
-  ],
-  "experimental": false
-}
-```
-<br>
+* Search for manga
+* Add manga to a personal collection
+* Edit reading status and rating
+* Remove entries from your list
+* Personalized recommendations
 
-## Compile Instructions:
-Run Docker Desktop and wait for it to say "Docker Desktop is running"<br>
+---
 
-From the ../MyMangaReader/ directory, run the following code: <br>
-```docker-compose up --build```
-<br>
+## 🛠️ Tech Stack
 
-## Local Host Site
-Frontend <br>
-```http://localhost:3000/``` <br>
-Manga List <br>
-```http://localhost:3000/manga-list``` <br>
-Backend <br>
-```http://localhost:5000/``` <br>
+* **Frontend:** Next.js, React, TypeScript
+* **Backend:** Node.js, Express
+* **Database:** MongoDB (Mongoose)
+* **API:** Kitsu API
+
