@@ -63,14 +63,29 @@ export default async function handler(req, res) {
 
         // 3. Fetch from Kitsu (Optimized safety check)
         const recResults = targetGenres.length > 0 
-            ? await Promise.all(targetGenres.map(tg => 
-                fetch(`https://kitsu.io/api/edge/manga?filter[categories]=${tg}&sort=-averageRating&page[limit]=15`)
-                .then(r => r.json())
-            ))
+            ? await Promise.all(
+                targetGenres.map(async (tg) => {
+                    try {
+                        const res = await fetch(`https://kitsu.io/api/edge/manga?filter[categories]=${tg}&sort=-averageRating&page[limit]=15`);
+                        if (!res.ok) return { data: [] };
+                        return await res.json();
+                    } catch {
+                        return { data: [] };
+                    }
+                })
+            )
             : [];
 
-        const trendingData = await fetch(`https://kitsu.io/api/edge/trending/manga?limit=15`).then(r => r.json());
+        let trendingData = { data: [] };
 
+        try {
+            const res = await fetch(`https://kitsu.io/api/edge/trending/manga?limit=15`);
+            if (res.ok) {
+                trendingData = await res.json();
+            }
+        } catch (err) {
+            console.error("Trending fetch failed:", err.message);
+        }
         // 4. Unified Formatter
         const formatManga = (data) => (data || [])
             .filter((item, index, self) => item && index === self.findIndex((t) => t.id === item.id))

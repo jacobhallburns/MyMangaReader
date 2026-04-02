@@ -148,9 +148,20 @@ export default function Recommendations() {
 
     useEffect(() => {
         fetch('/api/manga/recommendations')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    console.error("API FAILED:", res.status);
+                    return null;
+                }
+                return res.json();
+            })
             .then(data => {
-                setRecs(data);
+                console.log("DATA:", data);
+                if (data) setRecs(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Fetch error:", err);
                 setLoading(false);
             });
     }, []);
@@ -164,7 +175,7 @@ export default function Recommendations() {
             <main style={{ maxWidth: '1100px', margin: '0 auto' }}>
                 <h1 style={{ color: 'var(--text-main)', fontSize: '2.5rem', marginBottom: '2rem', fontWeight: '900' }}>Discover</h1>
                 
-                {recs.basedOnTaste.length > 0 && (
+                {recs?.basedOnTaste?.length > 0 && (
                     <section style={{ marginBottom: '4rem' }}>
                         <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--accent-green)', paddingLeft: '1rem', marginBottom: '0.5rem' }}>Recommended For You</h2>
                         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', marginLeft: '1.3rem' }}>{recs.selectedGenre ? `Because you like ${recs.selectedGenre}` : 'Based on your history'}</p>
@@ -179,7 +190,7 @@ export default function Recommendations() {
                 <section>
                     <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--border-color)', paddingLeft: '1rem', marginBottom: '2rem' }}>Global Trending</h2>
                     <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '2rem' }}>
-                        {loading ? <p style={{color: 'white'}}>Loading...</p> : recs.trending.map(m => (
+                        {loading ? (<p style={{color: 'white'}}>Loading...</p>) : recs?.trending?.map(m => (
                             <RecCard key={m.kitsuId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.kitsuId)} />
                         ))}
                     </ul>
