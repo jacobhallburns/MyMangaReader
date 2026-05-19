@@ -1,15 +1,7 @@
 /** @type {import('next').NextConfig} */
+// removed: async redirects() block — index.tsx now owns the landing redirect
 const nextConfig = {
   reactStrictMode: true,
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/recommendation',
-        permanent: false, 
-      },
-    ]
-  },
 }
 
 module.exports = nextConfig

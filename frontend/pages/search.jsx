@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { useClerk, useUser } from '@clerk/nextjs';
+import { useClerk } from '@clerk/nextjs'; // cleanup: removed unused useUser import
 
 export default function MangaSearch() {
     const { isSignedIn, isLoaded } = useAuth();

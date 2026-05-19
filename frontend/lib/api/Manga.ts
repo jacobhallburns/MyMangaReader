@@ -10,6 +10,7 @@ const MangaSchema = new mongoose.Schema({
   chapterCount: Number,
   mangaType: String, // e.g., "manga", "manhwa"
   status: String,    // e.g., "finished", "current"
+  genres: [String], // added: required by recommendations
 }, { timestamps: true });
 
 export default mongoose.models.Manga || mongoose.model('Manga', MangaSchema);

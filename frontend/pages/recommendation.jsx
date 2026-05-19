@@ -26,7 +26,7 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
                     },
                     status: tempStatus,
                     rating: tempRating,
-                    notes: ""
+                    notes: tempNotes // fixed: was hardcoded "", now sends user-entered notes
                 })
             });
 
@@ -145,6 +145,7 @@ export default function Recommendations() {
     const [recs, setRecs] = useState({ selectedGenre: '', basedOnTaste: [], trending: [] });
     const [addedIds, setAddedIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null); // added: surface fetch failures in the UI
 
     useEffect(() => {
         fetch('/api/manga/recommendations')
@@ -162,6 +163,7 @@ export default function Recommendations() {
             })
             .catch(err => {
                 console.error("Fetch error:", err);
+                setError('Failed to load recommendations.'); // added: user-visible error
                 setLoading(false);
             });
     }, []);
@@ -174,7 +176,9 @@ export default function Recommendations() {
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '2rem' }}>
             <main style={{ maxWidth: '1100px', margin: '0 auto' }}>
                 <h1 style={{ color: 'var(--text-main)', fontSize: '2.5rem', marginBottom: '2rem', fontWeight: '900' }}>Discover</h1>
-                
+
+                {error && <p style={{ color: '#ff4444' }}>{error}</p>}{/* added: render fetch error */}
+
                 {recs?.basedOnTaste?.length > 0 && (
                     <section style={{ marginBottom: '4rem' }}>
                         <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--accent-green)', paddingLeft: '1rem', marginBottom: '0.5rem' }}>Recommended For You</h2>

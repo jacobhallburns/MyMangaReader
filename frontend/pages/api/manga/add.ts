@@ -29,6 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     kitsuData.attributes.posterImage?.large, // Fallback to poster if no banner exists
         chapterCount: kitsuData.attributes.chapterCount,
         mangaType: kitsuData.type,
+        // added: persist genres for recommendations (defaults to [] when absent)
+        genres: kitsuData.relationships?.genres || [],
       },
       { upsert: true, new: true }
     );

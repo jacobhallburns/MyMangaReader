@@ -5,8 +5,8 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // This will trigger the middleware check and then move to the list
-    router.push('/manga-list');
+    // changed: landing destination is now /recommendation (was /manga-list)
+    router.push('/recommendation');
   }, [router]);
 
   return (

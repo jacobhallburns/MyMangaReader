@@ -117,6 +117,7 @@ export default function MangaList() {
                             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                 <option value="Updated">Default</option>
                                 <option value="TitleAZ">A → Z</option>
+                                <option value="TitleZA">Z → A</option>{/* added: exposes existing TitleZA sort branch */}
                                 <option value="RatingHigh">★ Top</option>
                             </select>
                         </div>
