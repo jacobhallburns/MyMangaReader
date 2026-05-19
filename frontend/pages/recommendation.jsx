@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useClerk, useUser } from '@clerk/nextjs';
+import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 
 const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
     const { isSignedIn } = useUser();
@@ -142,12 +142,14 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
 };
 
 export default function Recommendations() {
+    const { isLoaded } = useAuth();
     const [recs, setRecs] = useState({ selectedGenre: '', basedOnTaste: [], trending: [] });
     const [addedIds, setAddedIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null); // added: surface fetch failures in the UI
 
     useEffect(() => {
+        if (!isLoaded) return;
         fetch('/api/manga/recommendations')
             .then(res => {
                 if (!res.ok) {
@@ -166,7 +168,7 @@ export default function Recommendations() {
                 setError('Failed to load recommendations.'); // added: user-visible error
                 setLoading(false);
             });
-    }, []);
+    }, [isLoaded]);
 
     const handleMangaAdded = (kitsuId) => {
         setAddedIds(prev => new Set(prev).add(kitsuId));

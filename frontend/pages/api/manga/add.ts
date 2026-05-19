@@ -13,24 +13,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { kitsuData, status } = req.body;
 
+  let genres: string[] = [];
+  try {
+    const catRes = await fetch(
+      `https://kitsu.io/api/edge/manga/${kitsuData.id}/categories?page[limit]=8&sort=-totalMediaCount`
+    );
+    if (catRes.ok) {
+      const catJson = await catRes.json();
+      genres = (catJson.data ?? []).map((c: any) => c.attributes?.title).filter(Boolean);
+    }
+  } catch {
+    // non-fatal: proceed with empty genres
+  }
+
   try {
     const globalManga = await Manga.findOneAndUpdate(
       { kitsuId: kitsuData.id },
       {
         title: kitsuData.attributes.canonicalTitle || kitsuData.attributes.titles?.en_jp || kitsuData.attributes.slug,
         synopsis: kitsuData.attributes.synopsis,
-        // PORTRAIT ART: This is what you'll use for your list view
-        posterImage: kitsuData.attributes.posterImage?.large || 
-                    kitsuData.attributes.posterImage?.medium || 
+        posterImage: kitsuData.attributes.posterImage?.large ||
+                    kitsuData.attributes.posterImage?.medium ||
                     kitsuData.attributes.posterImage?.original,
-        // LANDSCAPE ART: This is the wide banner (keep it for potential profile headers)
-        coverImage: kitsuData.attributes.coverImage?.large || 
+        coverImage: kitsuData.attributes.coverImage?.large ||
                     kitsuData.attributes.coverImage?.original ||
-                    kitsuData.attributes.posterImage?.large, // Fallback to poster if no banner exists
+                    kitsuData.attributes.posterImage?.large,
         chapterCount: kitsuData.attributes.chapterCount,
         mangaType: kitsuData.type,
-        // added: persist genres for recommendations (defaults to [] when absent)
-        genres: kitsuData.relationships?.genres || [],
+        genres,
       },
       { upsert: true, new: true }
     );
