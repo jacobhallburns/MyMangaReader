@@ -4,13 +4,13 @@ A full-stack web application for tracking manga, managing a personal collection,
 
 Users can search for manga, save them to their list, and manage progress with statuses and ratings. The app integrates with the Kitsu API for real-time data while using a custom backend for persistent storage.
 
-## 🌐 Live Site
+## Live Site
 
 [https://my-manga-reader-pi.vercel.app](https://my-manga-reader-pi.vercel.app/)
 
 ---
 
-## 🚀 Features
+## Features
 
 * Search for manga
 * Add manga to a personal collection
@@ -20,7 +20,7 @@ Users can search for manga, save them to their list, and manage progress with st
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 * **Frontend:** Next.js, React, TypeScript
 * **Backend:** Node.js, Express
