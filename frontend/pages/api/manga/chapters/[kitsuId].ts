@@ -29,27 +29,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const chaptersData = await chaptersRes.json();
-    const chapters: any[] = chaptersData.data || [];
+    const raw: any[] = chaptersData.data || [];
     const nextCursor: string | null = chaptersData.links?.next ?? null;
 
-    // Group chapters by volumeNumber — first chapter seen wins (cover + date)
-    const volumeMap = new Map<number, { number: number; title: null; synopsis: null; posterImage: string | null; publishDate: string | null }>();
-    for (const ch of chapters) {
-      const volNum: number | null = ch.attributes?.volumeNumber ?? null;
-      if (volNum == null) continue;
-      if (!volumeMap.has(volNum)) {
-        const thumb = ch.attributes?.thumbnail;
-        volumeMap.set(volNum, {
-          number: volNum,
-          title: null,
-          synopsis: null,
-          posterImage: thumb?.original ?? thumb?.large ?? thumb?.medium ?? null,
-          publishDate: ch.attributes?.published ?? null,
-        });
-      }
-    }
-
-    const volumes = Array.from(volumeMap.values()).sort((a, b) => a.number - b.number);
+    const chapters = raw.map((ch) => ({
+      number: ch.attributes?.number ?? null,
+      title: ch.attributes?.title ?? null,
+      posterImage: ch.attributes?.thumbnailImage?.original ?? null,
+      volumeNumber: ch.attributes?.volumeNumber ?? null,
+    }));
 
     let serialization: string | null = null;
     if (serializationRes.ok) {
@@ -61,9 +49,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const manga = await Manga.findOne({ kitsuId });
     const mangaTitle = manga?.title || '';
 
-    return res.status(200).json({ volumes, mangaTitle, serialization, nextCursor });
+    return res.status(200).json({ chapters, mangaTitle, serialization, nextCursor });
   } catch (err: any) {
-    console.error('[volumes API]', err?.message ?? err);
-    return res.status(500).json({ error: err?.message ?? 'Failed to fetch volumes' });
+    console.error('[chapters API]', err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? 'Failed to fetch chapters' });
   }
 }
