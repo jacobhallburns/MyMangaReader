@@ -29,7 +29,7 @@ export default function MangaList() {
     const [detailManga, setDetailManga] = useState(null);
     const [volumes, setVolumes] = useState([]);
     const [volumesLoading, setVolumesLoading] = useState(false);
-    const [volumesError, setVolumesError] = useState(false);
+    const [volumesError, setVolumesError] = useState(null); // null = no error, string = error message
     const [nextCursor, setNextCursor] = useState(null);
     const [serialization, setSerialization] = useState(null);
     const [mangaTitle, setMangaTitle] = useState('');
@@ -110,9 +110,12 @@ export default function MangaList() {
 
     const loadVolumes = async (entry) => {
         const kitsuId = entry.mangaId?.kitsuId;
-        if (!kitsuId) { setVolumesError(true); return; }
+        if (!kitsuId) {
+            setVolumesError('No Kitsu ID on this manga entry.');
+            return;
+        }
         setVolumesLoading(true);
-        setVolumesError(false);
+        setVolumesError(null);
         setVolumes([]);
         setNextCursor(null);
         setSerialization(null);
@@ -121,14 +124,20 @@ export default function MangaList() {
         setPendingAdvancePage(null);
         try {
             const res = await fetch(`/api/manga/volumes/${kitsuId}`);
-            if (!res.ok) throw new Error();
             const data = await res.json();
+            if (!res.ok) {
+                const msg = data?.error || `API error ${res.status}`;
+                console.error('[loadVolumes]', msg, { kitsuId, status: res.status });
+                setVolumesError(msg);
+                return;
+            }
             setVolumes(data.volumes || []);
             setNextCursor(data.nextCursor ?? null);
             setSerialization(data.serialization ?? null);
             setMangaTitle(data.mangaTitle || '');
-        } catch {
-            setVolumesError(true);
+        } catch (err) {
+            console.error('[loadVolumes] fetch threw:', err);
+            setVolumesError(err.message || 'Network error');
         } finally {
             setVolumesLoading(false);
         }
@@ -310,7 +319,8 @@ export default function MangaList() {
 
                             {volumesError && !volumesLoading && (
                                 <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                                    <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Could not load volumes.</p>
+                                    <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Could not load volumes.</p>
+                                    <p style={{ color: '#ff6b6b', fontSize: '0.8rem', marginBottom: '1rem', fontFamily: 'monospace' }}>{volumesError}</p>
                                     <button onClick={() => loadVolumes(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Retry</button>
                                 </div>
                             )}

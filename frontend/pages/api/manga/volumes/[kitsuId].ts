@@ -23,7 +23,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
     ]);
 
-    if (!chaptersRes.ok) throw new Error(`Kitsu chapters fetch failed: ${chaptersRes.status}`);
+    if (!chaptersRes.ok) {
+      const body = await chaptersRes.text().catch(() => '');
+      throw new Error(`Kitsu chapters API returned ${chaptersRes.status} for manga ${kitsuId}. Body: ${body.slice(0, 200)}`);
+    }
 
     const chaptersData = await chaptersRes.json();
     const chapters: any[] = chaptersData.data || [];
@@ -59,8 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mangaTitle = manga?.title || '';
 
     return res.status(200).json({ volumes, mangaTitle, serialization, nextCursor });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Failed to fetch volumes' });
+  } catch (err: any) {
+    console.error('[volumes API]', err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? 'Failed to fetch volumes' });
   }
 }
