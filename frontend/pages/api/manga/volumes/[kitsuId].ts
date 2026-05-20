@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const chaptersUrl = cursor
       ? cursor
-      : `https://kitsu.io/api/edge/manga/${kitsuId}/chapters?sort=number&page[limit]=40`;
+      : `https://kitsu.io/api/edge/manga/${kitsuId}/chapters?sort=number&page[limit]=20`;
 
     const [chaptersRes, serializationRes] = await Promise.all([
       fetch(chaptersUrl, { headers: { Accept: 'application/vnd.api+json' } }),
