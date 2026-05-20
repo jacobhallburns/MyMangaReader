@@ -11,16 +11,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { kitsuId } = req.query as { kitsuId: string };
 
-  const [serializationRes] = await Promise.all([
-    fetch(`https://kitsu.io/api/edge/manga/${kitsuId}?fields[manga]=serialization`, {
-      headers: { Accept: 'application/vnd.api+json' },
-    }),
-  ]);
+  const kitsuRes = await fetch(
+    `https://kitsu.io/api/edge/manga/${kitsuId}?fields[manga]=serialization,volumeCount`,
+    { headers: { Accept: 'application/vnd.api+json' } }
+  );
 
   let serialization: string | null = null;
-  if (serializationRes.ok) {
-    const serData = await serializationRes.json();
-    serialization = serData.data?.attributes?.serialization ?? null;
+  let volumeCount = 0;
+
+  if (kitsuRes.ok) {
+    const kitsuData = await kitsuRes.json();
+    serialization = kitsuData.data?.attributes?.serialization ?? null;
+    volumeCount = kitsuData.data?.attributes?.volumeCount ?? 0;
   }
 
   await dbConnect();
@@ -29,38 +31,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const empty = { volumes: [], mangaTitle, serialization, nextCursor: null };
 
-  if (!mangaTitle) return res.status(200).json(empty);
+  if (!mangaTitle || volumeCount === 0) return res.status(200).json(empty);
 
-  try {
-    const searchRes = await fetch('https://api.mangaupdates.com/v1/series/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ search: mangaTitle, perpage: 1 }),
-    });
-    if (!searchRes.ok) return res.status(200).json(empty);
+  const volumes = Array.from({ length: volumeCount }, (_, i) => ({
+    volumeNumber: i + 1,
+    chapters: [],
+  }));
 
-    const searchData = await searchRes.json();
-    const seriesId = searchData.results?.[0]?.record?.series_id;
-    if (!seriesId) return res.status(200).json(empty);
-
-    const chapRes = await fetch(`https://api.mangaupdates.com/v1/series/${seriesId}/chapters`);
-    if (!chapRes.ok) return res.status(200).json(empty);
-
-    const chapData = await chapRes.json();
-
-    const volumes: { volumeNumber: number; chapters: { number: number }[] }[] = [];
-    for (const vol of chapData ?? []) {
-      const volumeNumber: number | null = vol.volume ?? null;
-      if (volumeNumber == null) continue;
-      const chapters = (vol.chapters ?? [])
-        .map((ch: any) => ({ number: Number(ch.chapter) }))
-        .filter((ch: { number: number }) => !isNaN(ch.number));
-      volumes.push({ volumeNumber, chapters });
-    }
-    volumes.sort((a, b) => a.volumeNumber - b.volumeNumber);
-
-    return res.status(200).json({ volumes, mangaTitle, serialization, nextCursor: null });
-  } catch {
-    return res.status(200).json(empty);
-  }
+  return res.status(200).json({ volumes, mangaTitle, serialization, nextCursor: null });
 }
