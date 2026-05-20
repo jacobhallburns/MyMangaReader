@@ -341,8 +341,8 @@ export default function MangaList() {
                                     const btnBase = { border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', minWidth: '34px', textAlign: 'center' };
                                     return (
                                         <>
-                                            {/* Chapter pills row */}
-                                            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', overflowX: 'auto', padding: '0.25rem 0', flexWrap: 'nowrap' }}>
+                                            {/* Chapter pills grid — 2 columns × 10 rows */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                 {visibleChapters.map((ch) => {
                                                     const isSelected = selectedChapter?.number === ch.number;
                                                     return (
@@ -358,8 +358,6 @@ export default function MangaList() {
                                                                 fontSize: '0.82rem',
                                                                 fontWeight: '600',
                                                                 cursor: 'pointer',
-                                                                whiteSpace: 'nowrap',
-                                                                flexShrink: 0,
                                                             }}
                                                         >
                                                             Ch. {ch.number}
@@ -413,16 +411,16 @@ export default function MangaList() {
                                 <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '380px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
-                                            {mangaTitle} — Chapter {selectedChapter.number}
+                                            {mangaTitle} — Chapter {selectedChapter.number}{selectedChapter.volumeNumber != null ? ` — Volume ${selectedChapter.volumeNumber}` : ''}
                                         </h2>
                                         <button onClick={() => setSelectedChapter(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
                                     </div>
 
                                     <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                        {selectedChapter.posterImage ? (
+                                        {detailManga.mangaId?.posterImage ? (
                                             <img
-                                                src={selectedChapter.posterImage}
-                                                alt={`Chapter ${selectedChapter.number}`}
+                                                src={detailManga.mangaId.posterImage}
+                                                alt={`${mangaTitle} poster`}
                                                 style={{ width: '200px', borderRadius: '12px', display: 'block' }}
                                             />
                                         ) : (
