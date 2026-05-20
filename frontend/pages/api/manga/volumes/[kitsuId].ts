@@ -11,7 +11,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { kitsuId } = req.query as { kitsuId: string };
 
-  // Resolve mangaTitle and serialization from Kitsu
   const [serializationRes] = await Promise.all([
     fetch(`https://kitsu.io/api/edge/manga/${kitsuId}?fields[manga]=serialization`, {
       headers: { Accept: 'application/vnd.api+json' },
@@ -28,12 +27,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const manga = await Manga.findOne({ kitsuId });
   const mangaTitle = manga?.title || '';
 
-  const empty = { chapters: [], mangaTitle, serialization, nextCursor: null };
+  const empty = { volumes: [], mangaTitle, serialization, nextCursor: null };
 
   if (!mangaTitle) return res.status(200).json(empty);
 
   try {
-    // Step 1 — find the series on MangaUpdates
     const searchRes = await fetch('https://api.mangaupdates.com/v1/series/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,24 +43,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const seriesId = searchData.results?.[0]?.record?.series_id;
     if (!seriesId) return res.status(200).json(empty);
 
-    // Step 2 — fetch volume/chapter structure
     const chapRes = await fetch(`https://api.mangaupdates.com/v1/series/${seriesId}/chapters`);
     if (!chapRes.ok) return res.status(200).json(empty);
 
     const chapData = await chapRes.json();
 
-    // Step 3 — flatten into { number, volumeNumber } sorted ascending
-    const chapters: { number: number; volumeNumber: number | null }[] = [];
+    const volumes: { volumeNumber: number; chapters: { number: number }[] }[] = [];
     for (const vol of chapData ?? []) {
       const volumeNumber: number | null = vol.volume ?? null;
-      for (const ch of vol.chapters ?? []) {
-        const number = Number(ch.chapter);
-        if (!isNaN(number)) chapters.push({ number, volumeNumber });
-      }
+      if (volumeNumber == null) continue;
+      const chapters = (vol.chapters ?? [])
+        .map((ch: any) => ({ number: Number(ch.chapter) }))
+        .filter((ch: { number: number }) => !isNaN(ch.number));
+      volumes.push({ volumeNumber, chapters });
     }
-    chapters.sort((a, b) => a.number - b.number);
+    volumes.sort((a, b) => a.volumeNumber - b.volumeNumber);
 
-    return res.status(200).json({ chapters, mangaTitle, serialization, nextCursor: null });
+    return res.status(200).json({ volumes, mangaTitle, serialization, nextCursor: null });
   } catch {
     return res.status(200).json(empty);
   }

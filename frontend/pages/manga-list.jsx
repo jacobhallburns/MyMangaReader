@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from "next/link";
 
-const CHAPTERS_PER_PAGE = 20;
+const VOLUMES_PER_PAGE = 20;
 
 function getPageNumbers(current, total) {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -27,16 +27,16 @@ export default function MangaList() {
 
     // Detail modal state
     const [detailManga, setDetailManga] = useState(null);
-    const [chapters, setChapters] = useState([]);
-    const [chaptersLoading, setChaptersLoading] = useState(false);
-    const [chaptersError, setChaptersError] = useState(null);
+    const [volumes, setVolumes] = useState([]);
+    const [volumesLoading, setVolumesLoading] = useState(false);
+    const [volumesError, setVolumesError] = useState(null);
     const [nextCursor, setNextCursor] = useState(null);
     const [serialization, setSerialization] = useState(null);
     const [mangaTitle, setMangaTitle] = useState('');
     const [loadMoreLoading, setLoadMoreLoading] = useState(false);
-    const [chapterPage, setChapterPage] = useState(1);
+    const [volumePage, setVolumePage] = useState(1);
     const [pendingAdvancePage, setPendingAdvancePage] = useState(null);
-    const [selectedChapter, setSelectedChapter] = useState(null);
+    const [selectedVolume, setSelectedVolume] = useState(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -109,54 +109,54 @@ export default function MangaList() {
         }
     };
 
-    const loadChapters = async (entry) => {
+    const loadVolumes = async (entry) => {
         const kitsuId = entry.mangaId?.kitsuId;
         if (!kitsuId) {
-            setChaptersError('No Kitsu ID on this manga entry.');
+            setVolumesError('No Kitsu ID on this manga entry.');
             return;
         }
-        setChaptersLoading(true);
-        setChaptersError(null);
-        setChapters([]);
+        setVolumesLoading(true);
+        setVolumesError(null);
+        setVolumes([]);
         setNextCursor(null);
         setSerialization(null);
         setMangaTitle('');
-        setChapterPage(1);
+        setVolumePage(1);
         setPendingAdvancePage(null);
-        setSelectedChapter(null);
+        setSelectedVolume(null);
         try {
-            const res = await fetch(`/api/manga/chapters/${kitsuId}`);
+            const res = await fetch(`/api/manga/volumes/${kitsuId}`);
             const data = await res.json();
             if (!res.ok) {
                 const msg = data?.error || `API error ${res.status}`;
-                console.error('[loadChapters]', msg, { kitsuId, status: res.status });
-                setChaptersError(msg);
+                console.error('[loadVolumes]', msg, { kitsuId, status: res.status });
+                setVolumesError(msg);
                 return;
             }
-            setChapters(data.chapters || []);
+            setVolumes(data.volumes || []);
             setNextCursor(data.nextCursor ?? null);
             setSerialization(data.serialization ?? null);
             setMangaTitle(data.mangaTitle || '');
         } catch (err) {
-            console.error('[loadChapters] fetch threw:', err);
-            setChaptersError(err.message || 'Network error');
+            console.error('[loadVolumes] fetch threw:', err);
+            setVolumesError(err.message || 'Network error');
         } finally {
-            setChaptersLoading(false);
+            setVolumesLoading(false);
         }
     };
 
-    const loadMoreChapters = async () => {
+    const loadMoreVolumes = async () => {
         if (!nextCursor || !detailManga) return;
         const kitsuId = detailManga.mangaId?.kitsuId;
         if (!kitsuId) return;
         setLoadMoreLoading(true);
         try {
-            const res = await fetch(`/api/manga/chapters/${kitsuId}?cursor=${encodeURIComponent(nextCursor)}`);
+            const res = await fetch(`/api/manga/volumes/${kitsuId}?cursor=${encodeURIComponent(nextCursor)}`);
             if (!res.ok) throw new Error();
             const data = await res.json();
-            setChapters(prev => {
-                const seen = new Set(prev.map(c => c.number));
-                return [...prev, ...(data.chapters || []).filter(c => !seen.has(c.number))];
+            setVolumes(prev => {
+                const seen = new Set(prev.map(v => v.volumeNumber));
+                return [...prev, ...(data.volumes || []).filter(v => !seen.has(v.volumeNumber))];
             });
             setNextCursor(data.nextCursor ?? null);
         } catch {
@@ -168,26 +168,26 @@ export default function MangaList() {
 
     useEffect(() => {
         if (pendingAdvancePage !== null && !loadMoreLoading) {
-            const total = Math.max(1, Math.ceil(chapters.length / CHAPTERS_PER_PAGE));
-            setChapterPage(Math.min(pendingAdvancePage, total));
+            const total = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
+            setVolumePage(Math.min(pendingAdvancePage, total));
             setPendingAdvancePage(null);
         }
-    }, [loadMoreLoading, pendingAdvancePage, chapters.length]);
+    }, [loadMoreLoading, pendingAdvancePage, volumes.length]);
 
-    const goToChapterPage = (page) => {
-        const total = Math.ceil(chapters.length / CHAPTERS_PER_PAGE);
+    const goToVolumePage = (page) => {
+        const total = Math.ceil(volumes.length / VOLUMES_PER_PAGE);
         if (page < 1 || (page > total && !nextCursor)) return;
         if (page > total && nextCursor && !loadMoreLoading) {
             setPendingAdvancePage(page);
-            loadMoreChapters();
+            loadMoreVolumes();
         } else {
-            setChapterPage(page);
+            setVolumePage(page);
         }
     };
 
     const openDetail = (entry) => {
         setDetailManga(entry);
-        loadChapters(entry);
+        loadVolumes(entry);
     };
 
     if (loading) return (
@@ -311,44 +311,44 @@ export default function MangaList() {
                             <div onClick={(e) => e.stopPropagation()} style={{ width: '92%', maxWidth: '720px', maxHeight: '85vh', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
-                                        {mangaTitle || detailManga.mangaId?.title} — Chapters
+                                        {mangaTitle || detailManga.mangaId?.title} — Volumes
                                     </h2>
                                     <button onClick={() => setDetailManga(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
                                 </div>
 
-                                {chaptersLoading && (
-                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>Loading chapters...</p>
+                                {volumesLoading && (
+                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>Loading volumes...</p>
                                 )}
 
-                                {chaptersError && !chaptersLoading && (
+                                {volumesError && !volumesLoading && (
                                     <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                                        <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Could not load chapters.</p>
-                                        <p style={{ color: '#ff6b6b', fontSize: '0.8rem', marginBottom: '1rem', fontFamily: 'monospace' }}>{chaptersError}</p>
-                                        <button onClick={() => loadChapters(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Retry</button>
+                                        <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Could not load volumes.</p>
+                                        <p style={{ color: '#ff6b6b', fontSize: '0.8rem', marginBottom: '1rem', fontFamily: 'monospace' }}>{volumesError}</p>
+                                        <button onClick={() => loadVolumes(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Retry</button>
                                     </div>
                                 )}
 
-                                {!chaptersLoading && !chaptersError && chapters.length === 0 && (
-                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No chapters available for this manga.</p>
+                                {!volumesLoading && !volumesError && volumes.length === 0 && (
+                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No volumes available for this manga.</p>
                                 )}
 
-                                {!chaptersLoading && !chaptersError && chapters.length > 0 && (() => {
-                                    const totalKnownPages = Math.max(1, Math.ceil(chapters.length / CHAPTERS_PER_PAGE));
-                                    const visibleChapters = chapters.slice((chapterPage - 1) * CHAPTERS_PER_PAGE, chapterPage * CHAPTERS_PER_PAGE);
-                                    const canGoNext = chapterPage < totalKnownPages || !!nextCursor;
-                                    const canGoPrev = chapterPage > 1;
-                                    const pageNums = getPageNumbers(chapterPage, totalKnownPages);
+                                {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
+                                    const totalKnownPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
+                                    const visibleVolumes = volumes.slice((volumePage - 1) * VOLUMES_PER_PAGE, volumePage * VOLUMES_PER_PAGE);
+                                    const canGoNext = volumePage < totalKnownPages || !!nextCursor;
+                                    const canGoPrev = volumePage > 1;
+                                    const pageNums = getPageNumbers(volumePage, totalKnownPages);
                                     const btnBase = { border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', minWidth: '34px', textAlign: 'center' };
                                     return (
                                         <>
-                                            {/* Chapter pills grid — 2 columns × 10 rows */}
+                                            {/* Volume pills grid — 2 columns × 10 rows */}
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                                                {visibleChapters.map((ch) => {
-                                                    const isSelected = selectedChapter?.number === ch.number;
+                                                {visibleVolumes.map((vol) => {
+                                                    const isSelected = selectedVolume?.volumeNumber === vol.volumeNumber;
                                                     return (
                                                         <button
-                                                            key={ch.number}
-                                                            onClick={() => setSelectedChapter(ch)}
+                                                            key={vol.volumeNumber}
+                                                            onClick={() => setSelectedVolume(vol)}
                                                             style={{
                                                                 padding: '0.4rem 0.9rem',
                                                                 borderRadius: '20px',
@@ -360,7 +360,7 @@ export default function MangaList() {
                                                                 cursor: 'pointer',
                                                             }}
                                                         >
-                                                            Ch. {ch.number}
+                                                            Vol. {vol.volumeNumber}
                                                         </button>
                                                     );
                                                 })}
@@ -370,7 +370,7 @@ export default function MangaList() {
                                             {(totalKnownPages > 1 || nextCursor) && (
                                                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                                     <button
-                                                        onClick={() => goToChapterPage(chapterPage - 1)}
+                                                        onClick={() => goToVolumePage(volumePage - 1)}
                                                         disabled={!canGoPrev || loadMoreLoading}
                                                         style={{ ...btnBase, background: canGoPrev ? 'var(--bg-color)' : 'transparent', color: canGoPrev ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoPrev ? 1 : 0.35, cursor: canGoPrev ? 'pointer' : 'default' }}
                                                     >←</button>
@@ -381,9 +381,9 @@ export default function MangaList() {
                                                         ) : (
                                                             <button
                                                                 key={p}
-                                                                onClick={() => goToChapterPage(p)}
+                                                                onClick={() => goToVolumePage(p)}
                                                                 disabled={loadMoreLoading}
-                                                                style={{ ...btnBase, background: p === chapterPage ? 'var(--text-main)' : 'var(--bg-color)', color: p === chapterPage ? 'var(--bg-color)' : 'var(--text-main)', borderColor: p === chapterPage ? 'var(--text-main)' : 'var(--border-color)' }}
+                                                                style={{ ...btnBase, background: p === volumePage ? 'var(--text-main)' : 'var(--bg-color)', color: p === volumePage ? 'var(--bg-color)' : 'var(--text-main)', borderColor: p === volumePage ? 'var(--text-main)' : 'var(--border-color)' }}
                                                             >{p}</button>
                                                         )
                                                     )}
@@ -393,7 +393,7 @@ export default function MangaList() {
                                                     )}
 
                                                     <button
-                                                        onClick={() => goToChapterPage(chapterPage + 1)}
+                                                        onClick={() => goToVolumePage(volumePage + 1)}
                                                         disabled={!canGoNext || loadMoreLoading}
                                                         style={{ ...btnBase, background: canGoNext ? 'var(--bg-color)' : 'transparent', color: canGoNext ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoNext && !loadMoreLoading ? 1 : 0.35, cursor: canGoNext && !loadMoreLoading ? 'pointer' : 'default' }}
                                                     >{loadMoreLoading && pendingAdvancePage ? '…' : '→'}</button>
@@ -405,15 +405,15 @@ export default function MangaList() {
                             </div>
                         </div>
 
-                        {/* CHAPTER DETAIL MODAL (layered on top) */}
-                        {selectedChapter && (
-                            <div onClick={() => setSelectedChapter(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
+                        {/* VOLUME DETAIL MODAL (layered on top) */}
+                        {selectedVolume && (
+                            <div onClick={() => setSelectedVolume(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
                                 <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '380px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>
-                                            {mangaTitle} — Chapter {selectedChapter.number}{selectedChapter.volumeNumber != null ? ` — Volume ${selectedChapter.volumeNumber}` : ''}
+                                            {mangaTitle} — Volume {selectedVolume.volumeNumber}
                                         </h2>
-                                        <button onClick={() => setSelectedChapter(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
+                                        <button onClick={() => setSelectedVolume(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
                                     </div>
 
                                     <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -429,11 +429,16 @@ export default function MangaList() {
                                     </div>
 
                                     {(() => {
-                                        const term = serialization ? ` ${serialization}` : ' manga';
-                                        const volRef = selectedChapter.volumeNumber ?? selectedChapter.number;
-                                        const query = encodeURIComponent(`${mangaTitle} volume ${volRef}${term} new`);
+                                        const volRef = selectedVolume.volumeNumber;
+                                        const query = volRef != null
+                                            ? encodeURIComponent(
+                                                `"${mangaTitle}, Vol. ${volRef}"${serialization ? ` ${serialization}` : ''}`
+                                              )
+                                            : encodeURIComponent(
+                                                `${mangaTitle} manga${serialization ? ` ${serialization}` : ''}`
+                                              );
                                         const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG ?? '';
-                                        const href = `https://www.amazon.com/s?k=${query}${tag ? `&tag=${tag}` : ''}`;
+                                        const href = `https://www.amazon.com/s?k=${query}&i=digital-text${tag ? `&tag=${tag}` : ''}`;
                                         return (
                                             <div style={{ textAlign: 'center' }}>
                                                 <a
