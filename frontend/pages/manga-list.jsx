@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from "next/link";
 
+const VOLUMES_PER_PAGE = 20;
+
+function getPageNumbers(current, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+    if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+    return [1, '...', current - 1, current, current + 1, '...', total];
+}
+
 export default function MangaList() {
     const [manga, setManga] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -25,6 +34,8 @@ export default function MangaList() {
     const [serialization, setSerialization] = useState(null);
     const [mangaTitle, setMangaTitle] = useState('');
     const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+    const [volumePage, setVolumePage] = useState(1);
+    const [pendingAdvancePage, setPendingAdvancePage] = useState(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -106,6 +117,8 @@ export default function MangaList() {
         setNextCursor(null);
         setSerialization(null);
         setMangaTitle('');
+        setVolumePage(1);
+        setPendingAdvancePage(null);
         try {
             const res = await fetch(`/api/manga/volumes/${kitsuId}`);
             if (!res.ok) throw new Error();
@@ -130,12 +143,34 @@ export default function MangaList() {
             const res = await fetch(`/api/manga/volumes/${kitsuId}?cursor=${encodeURIComponent(nextCursor)}`);
             if (!res.ok) throw new Error();
             const data = await res.json();
-            setVolumes(prev => [...prev, ...(data.volumes || [])]);
+            setVolumes(prev => {
+                const seen = new Set(prev.map(v => v.number));
+                return [...prev, ...(data.volumes || []).filter(v => !seen.has(v.number))];
+            });
             setNextCursor(data.nextCursor ?? null);
         } catch {
             // silently fail on load more — existing list is preserved
         } finally {
             setLoadMoreLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (pendingAdvancePage !== null && !loadMoreLoading) {
+            const total = Math.ceil(volumes.length / VOLUMES_PER_PAGE);
+            setVolumePage(Math.min(pendingAdvancePage, Math.max(total, 1)));
+            setPendingAdvancePage(null);
+        }
+    }, [loadMoreLoading, pendingAdvancePage, volumes.length]);
+
+    const goToVolumePage = (page) => {
+        const total = Math.ceil(volumes.length / VOLUMES_PER_PAGE);
+        if (page < 1 || (page > total && !nextCursor)) return;
+        if (page > total && nextCursor && !loadMoreLoading) {
+            setPendingAdvancePage(page);
+            loadMoreVolumes();
+        } else {
+            setVolumePage(page);
         }
     };
 
@@ -284,50 +319,81 @@ export default function MangaList() {
                                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No volumes available for this manga.</p>
                             )}
 
-                            {!volumesLoading && !volumesError && volumes.length > 0 && (
-                                <>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-                                    {volumes.map((vol) => {
-                                        const publisherTerm = serialization ? ` ${serialization}` : ' manga';
-                                        const query = encodeURIComponent(`${mangaTitle} volume ${vol.number}${publisherTerm} new`);
-                                        const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG ?? '';
-                                        const href = `https://www.amazon.com/s?k=${query}${tag ? `&tag=${tag}` : ''}`;
-                                        return (
-                                            <div key={vol.number} style={{ background: 'var(--bg-color)', borderRadius: '16px', border: '1px solid var(--border-color)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                                <div style={{ height: '180px', background: '#1a1a1a', overflow: 'hidden', flexShrink: 0 }}>
-                                                    <img src={vol.posterImage || '/placeholder.png'} alt={`Vol. ${vol.number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
+                                const totalKnownPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
+                                const visibleVolumes = volumes.slice((volumePage - 1) * VOLUMES_PER_PAGE, volumePage * VOLUMES_PER_PAGE);
+                                const canGoNext = volumePage < totalKnownPages || !!nextCursor;
+                                const canGoPrev = volumePage > 1;
+                                const pageNums = getPageNumbers(volumePage, totalKnownPages);
+                                const btnBase = { border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', minWidth: '34px', textAlign: 'center' };
+                                return (
+                                    <>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
+                                        {visibleVolumes.map((vol) => {
+                                            const publisherTerm = serialization ? ` ${serialization}` : ' manga';
+                                            const query = encodeURIComponent(`${mangaTitle} volume ${vol.number}${publisherTerm} new`);
+                                            const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG ?? '';
+                                            const href = `https://www.amazon.com/s?k=${query}${tag ? `&tag=${tag}` : ''}`;
+                                            return (
+                                                <div key={vol.number} style={{ background: 'var(--bg-color)', borderRadius: '16px', border: '1px solid var(--border-color)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                                    <div style={{ height: '180px', background: '#1a1a1a', overflow: 'hidden', flexShrink: 0 }}>
+                                                        <img src={vol.posterImage || '/placeholder.png'} alt={`Vol. ${vol.number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    </div>
+                                                    <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                        <span style={{ color: 'var(--accent-green)', fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vol. {vol.number}</span>
+                                                        {vol.title && <p style={{ color: 'var(--text-main)', fontSize: '0.82rem', fontWeight: '600', margin: 0 }}>{vol.title}</p>}
+                                                        {vol.synopsis && <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem', margin: 0, lineHeight: '1.4' }}>{vol.synopsis.slice(0, 80)}{vol.synopsis.length > 80 ? '…' : ''}</p>}
+                                                        {vol.publishDate && <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: 0 }}>{vol.publishDate}</p>}
+                                                        <a
+                                                            href={href}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer sponsored"
+                                                            style={{ marginTop: 'auto', padding: '0.45rem 0.5rem', background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '600', width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block', boxSizing: 'border-box' }}
+                                                        >
+                                                            Buy on Amazon
+                                                        </a>
+                                                    </div>
                                                 </div>
-                                                <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                                    <span style={{ color: 'var(--accent-green)', fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vol. {vol.number}</span>
-                                                    {vol.title && <p style={{ color: 'var(--text-main)', fontSize: '0.82rem', fontWeight: '600', margin: 0 }}>{vol.title}</p>}
-                                                    {vol.synopsis && <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem', margin: 0, lineHeight: '1.4' }}>{vol.synopsis.slice(0, 80)}{vol.synopsis.length > 80 ? '…' : ''}</p>}
-                                                    {vol.publishDate && <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: 0 }}>{vol.publishDate}</p>}
-                                                    <a
-                                                        href={href}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer sponsored"
-                                                        style={{ marginTop: 'auto', padding: '0.45rem 0.5rem', background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '600', width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block', boxSizing: 'border-box' }}
-                                                    >
-                                                        Buy on Amazon
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                {nextCursor && (
-                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
-                                        <button
-                                            onClick={loadMoreVolumes}
-                                            disabled={loadMoreLoading}
-                                            style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: loadMoreLoading ? 'default' : 'pointer', fontWeight: 'bold', fontSize: '0.9rem', opacity: loadMoreLoading ? 0.7 : 1 }}
-                                        >
-                                            {loadMoreLoading ? 'Loading…' : 'Load more volumes'}
-                                        </button>
+                                            );
+                                        })}
                                     </div>
-                                )}
-                                </>
-                            )}
+
+                                    {/* Pagination bar */}
+                                    {(totalKnownPages > 1 || nextCursor) && (
+                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                                            <button
+                                                onClick={() => goToVolumePage(volumePage - 1)}
+                                                disabled={!canGoPrev || loadMoreLoading}
+                                                style={{ ...btnBase, background: canGoPrev ? 'var(--bg-color)' : 'transparent', color: canGoPrev ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoPrev ? 1 : 0.35, cursor: canGoPrev ? 'pointer' : 'default' }}
+                                            >←</button>
+
+                                            {pageNums.map((p, i) =>
+                                                p === '...' ? (
+                                                    <span key={`e${i}`} style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>
+                                                ) : (
+                                                    <button
+                                                        key={p}
+                                                        onClick={() => goToVolumePage(p)}
+                                                        disabled={loadMoreLoading}
+                                                        style={{ ...btnBase, background: p === volumePage ? 'var(--text-main)' : 'var(--bg-color)', color: p === volumePage ? 'var(--bg-color)' : 'var(--text-main)', borderColor: p === volumePage ? 'var(--text-main)' : 'var(--border-color)' }}
+                                                    >{p}</button>
+                                                )
+                                            )}
+
+                                            {nextCursor && (
+                                                <span style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>
+                                            )}
+
+                                            <button
+                                                onClick={() => goToVolumePage(volumePage + 1)}
+                                                disabled={!canGoNext || loadMoreLoading}
+                                                style={{ ...btnBase, background: canGoNext ? 'var(--bg-color)' : 'transparent', color: canGoNext ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoNext && !loadMoreLoading ? 1 : 0.35, cursor: canGoNext && !loadMoreLoading ? 'pointer' : 'default' }}
+                                            >{loadMoreLoading && pendingAdvancePage ? '…' : '→'}</button>
+                                        </div>
+                                    )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}

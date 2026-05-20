@@ -12,34 +12,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { kitsuId, cursor } = req.query as { kitsuId: string; cursor?: string };
 
   try {
-    const volumesUrl = cursor
+    const chaptersUrl = cursor
       ? cursor
-      : `https://kitsu.io/api/edge/manga/${kitsuId}/volumes?sort=number&page[limit]=40`;
+      : `https://kitsu.io/api/edge/manga/${kitsuId}/chapters?sort=number&page[limit]=40`;
 
-    const [kitsuRes, serializationRes] = await Promise.all([
-      fetch(volumesUrl, { headers: { Accept: 'application/vnd.api+json' } }),
+    const [chaptersRes, serializationRes] = await Promise.all([
+      fetch(chaptersUrl, { headers: { Accept: 'application/vnd.api+json' } }),
       fetch(`https://kitsu.io/api/edge/manga/${kitsuId}?fields[manga]=serialization`, {
         headers: { Accept: 'application/vnd.api+json' },
       }),
     ]);
 
-    let volumes: any[] = [];
-    let nextCursor: string | null = null;
+    if (!chaptersRes.ok) throw new Error(`Kitsu chapters fetch failed: ${chaptersRes.status}`);
 
-    if (kitsuRes.ok) {
-      const kitsuData = await kitsuRes.json();
-      volumes = (kitsuData.data || []).map((v: any) => ({
-        number: v.attributes?.number,
-        title: v.attributes?.titles?.en_jp || v.attributes?.titles?.en || null,
-        synopsis: v.attributes?.synopsis || null,
-        posterImage:
-          v.attributes?.posterImage?.large ||
-          v.attributes?.posterImage?.medium ||
-          null,
-        publishDate: v.attributes?.published || null,
-      }));
-      nextCursor = kitsuData.links?.next ?? null;
+    const chaptersData = await chaptersRes.json();
+    const chapters: any[] = chaptersData.data || [];
+    const nextCursor: string | null = chaptersData.links?.next ?? null;
+
+    // Group chapters by volumeNumber — first chapter seen wins (cover + date)
+    const volumeMap = new Map<number, { number: number; title: null; synopsis: null; posterImage: string | null; publishDate: string | null }>();
+    for (const ch of chapters) {
+      const volNum: number | null = ch.attributes?.volumeNumber ?? null;
+      if (volNum == null) continue;
+      if (!volumeMap.has(volNum)) {
+        const thumb = ch.attributes?.thumbnail;
+        volumeMap.set(volNum, {
+          number: volNum,
+          title: null,
+          synopsis: null,
+          posterImage: thumb?.original ?? thumb?.large ?? thumb?.medium ?? null,
+          publishDate: ch.attributes?.published ?? null,
+        });
+      }
     }
+
+    const volumes = Array.from(volumeMap.values()).sort((a, b) => a.number - b.number);
 
     let serialization: string | null = null;
     if (serializationRes.ok) {
