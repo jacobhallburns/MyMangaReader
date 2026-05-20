@@ -8,13 +8,23 @@ export default function MangaList() {
     // Search / Filter / Sort
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
-    const [sortBy, setSortBy] = useState('Updated'); 
+    const [sortBy, setSortBy] = useState('Updated');
 
-    // Modal State
+    // Edit modal state
     const [editingManga, setEditingManga] = useState(null);
     const [tempStatus, setTempStatus] = useState('plan_to_read');
     const [tempRating, setTempRating] = useState(0);
     const [tempNotes, setTempNotes] = useState('');
+
+    // Detail modal state
+    const [detailManga, setDetailManga] = useState(null);
+    const [volumes, setVolumes] = useState([]);
+    const [volumesLoading, setVolumesLoading] = useState(false);
+    const [volumesError, setVolumesError] = useState(false);
+    const [nextCursor, setNextCursor] = useState(null);
+    const [serialization, setSerialization] = useState(null);
+    const [mangaTitle, setMangaTitle] = useState('');
+    const [loadMoreLoading, setLoadMoreLoading] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -63,8 +73,8 @@ export default function MangaList() {
             });
             if (res.ok) {
                 const updatedData = await res.json();
-                setManga(prev => prev.map(m => m._id === editingManga._id 
-                    ? { ...m, status: updatedData.status, rating: updatedData.rating, notes: updatedData.notes } 
+                setManga(prev => prev.map(m => m._id === editingManga._id
+                    ? { ...m, status: updatedData.status, rating: updatedData.rating, notes: updatedData.notes }
                     : m
                 ));
             }
@@ -87,6 +97,53 @@ export default function MangaList() {
         }
     };
 
+    const loadVolumes = async (entry) => {
+        const kitsuId = entry.mangaId?.kitsuId;
+        if (!kitsuId) { setVolumesError(true); return; }
+        setVolumesLoading(true);
+        setVolumesError(false);
+        setVolumes([]);
+        setNextCursor(null);
+        setSerialization(null);
+        setMangaTitle('');
+        try {
+            const res = await fetch(`/api/manga/volumes/${kitsuId}`);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            setVolumes(data.volumes || []);
+            setNextCursor(data.nextCursor ?? null);
+            setSerialization(data.serialization ?? null);
+            setMangaTitle(data.mangaTitle || '');
+        } catch {
+            setVolumesError(true);
+        } finally {
+            setVolumesLoading(false);
+        }
+    };
+
+    const loadMoreVolumes = async () => {
+        if (!nextCursor || !detailManga) return;
+        const kitsuId = detailManga.mangaId?.kitsuId;
+        if (!kitsuId) return;
+        setLoadMoreLoading(true);
+        try {
+            const res = await fetch(`/api/manga/volumes/${kitsuId}?cursor=${encodeURIComponent(nextCursor)}`);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            setVolumes(prev => [...prev, ...(data.volumes || [])]);
+            setNextCursor(data.nextCursor ?? null);
+        } catch {
+            // silently fail on load more — existing list is preserved
+        } finally {
+            setLoadMoreLoading(false);
+        }
+    };
+
+    const openDetail = (entry) => {
+        setDetailManga(entry);
+        loadVolumes(entry);
+    };
+
     if (loading) return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <p style={{ color: 'var(--text-main)' }}>Loading collection...</p>
@@ -96,14 +153,14 @@ export default function MangaList() {
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '1rem' }}>
             <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                
+
                 <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-color)', paddingBottom: '1rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1rem' }}>
-                        <input 
-                            value={searchTerm} 
-                            onChange={(e) => setSearchTerm(e.target.value)} 
-                            placeholder="Search List..." 
-                            style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }} 
+                        <input
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search List..."
+                            style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }}
                         />
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
                             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
@@ -126,30 +183,31 @@ export default function MangaList() {
 
                 <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {visibleManga.map((entry) => (
-                        <li key={entry._id} style={{ 
-                            background: 'var(--card-bg)', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: '24px', 
+                        <li key={entry._id} onClick={() => openDetail(entry)} style={{
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '24px',
                             padding: '1.5rem',
                             display: 'flex',
                             gap: '1.5rem',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                            cursor: 'pointer'
                         }}>
                             {/* Poster View Container */}
-                            <div style={{ 
-                                width: '140px', 
-                                height: '210px', 
-                                backgroundColor: '#1a1a1a', 
-                                borderRadius: '16px', 
-                                flexShrink: 0, 
+                            <div style={{
+                                width: '140px',
+                                height: '210px',
+                                backgroundColor: '#1a1a1a',
+                                borderRadius: '16px',
+                                flexShrink: 0,
                                 overflow: 'hidden',
-                                border: '1px solid var(--border-color)', 
+                                border: '1px solid var(--border-color)',
                                 boxShadow: '0 8px 16px rgba(0,0,0,0.4)'
                             }}>
-                                <img 
+                                <img
                                     src={entry.mangaId?.posterImage || "/placeholder.png"}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                    alt={entry.mangaId?.title || "manga cover"} 
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    alt={entry.mangaId?.title || "manga cover"}
                                 />
                             </div>
 
@@ -162,7 +220,7 @@ export default function MangaList() {
                                     <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 1rem 0' }}>
                                         {entry.mangaId?.synopsis?.slice(0, 200) || entry.synopsis?.slice(0, 200)}...
                                     </p>
-                                    
+
                                     {entry.notes && (
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '0.7rem 1rem', borderRadius: '12px', borderLeft: '4px solid var(--accent-green)', opacity: 0.9 }}>
                                             <span style={{ fontWeight: 'bold', color: 'var(--accent-green)' }}>Note:</span> {entry.notes}
@@ -181,14 +239,15 @@ export default function MangaList() {
                                             </span>
                                         )}
                                     </div>
-                                    
-                                    <button 
-                                        onClick={() => { 
-                                            setEditingManga(entry); 
-                                            setTempStatus(entry.status); 
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingManga(entry);
+                                            setTempStatus(entry.status);
                                             setTempRating(entry.rating || 0);
                                             setTempNotes(entry.notes || '');
-                                        }} 
+                                        }}
                                         style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem' }}
                                     >
                                         Edit Entry
@@ -199,12 +258,86 @@ export default function MangaList() {
                     ))}
                 </ul>
 
+                {/* DETAIL MODAL */}
+                {detailManga && (
+                    <div onClick={() => setDetailManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
+                        <div onClick={(e) => e.stopPropagation()} style={{ width: '92%', maxWidth: '720px', maxHeight: '85vh', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
+                                    {detailManga.mangaId?.title} — Volumes
+                                </h2>
+                                <button onClick={() => setDetailManga(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.25rem' }}>✕</button>
+                            </div>
+
+                            {volumesLoading && (
+                                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>Loading volumes...</p>
+                            )}
+
+                            {volumesError && !volumesLoading && (
+                                <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                                    <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Could not load volumes.</p>
+                                    <button onClick={() => loadVolumes(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Retry</button>
+                                </div>
+                            )}
+
+                            {!volumesLoading && !volumesError && volumes.length === 0 && (
+                                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No volumes available for this manga.</p>
+                            )}
+
+                            {!volumesLoading && !volumesError && volumes.length > 0 && (
+                                <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
+                                    {volumes.map((vol) => {
+                                        const publisherTerm = serialization ? ` ${serialization}` : ' manga';
+                                        const query = encodeURIComponent(`${mangaTitle} volume ${vol.number}${publisherTerm} new`);
+                                        const tag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG ?? '';
+                                        const href = `https://www.amazon.com/s?k=${query}${tag ? `&tag=${tag}` : ''}`;
+                                        return (
+                                            <div key={vol.number} style={{ background: 'var(--bg-color)', borderRadius: '16px', border: '1px solid var(--border-color)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                                <div style={{ height: '180px', background: '#1a1a1a', overflow: 'hidden', flexShrink: 0 }}>
+                                                    <img src={vol.posterImage || '/placeholder.png'} alt={`Vol. ${vol.number}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                </div>
+                                                <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                    <span style={{ color: 'var(--accent-green)', fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vol. {vol.number}</span>
+                                                    {vol.title && <p style={{ color: 'var(--text-main)', fontSize: '0.82rem', fontWeight: '600', margin: 0 }}>{vol.title}</p>}
+                                                    {vol.synopsis && <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem', margin: 0, lineHeight: '1.4' }}>{vol.synopsis.slice(0, 80)}{vol.synopsis.length > 80 ? '…' : ''}</p>}
+                                                    {vol.publishDate && <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', margin: 0 }}>{vol.publishDate}</p>}
+                                                    <a
+                                                        href={href}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer sponsored"
+                                                        style={{ marginTop: 'auto', padding: '0.45rem 0.5rem', background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '600', width: '100%', textAlign: 'center', textDecoration: 'none', display: 'block', boxSizing: 'border-box' }}
+                                                    >
+                                                        Buy on Amazon
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {nextCursor && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+                                        <button
+                                            onClick={loadMoreVolumes}
+                                            disabled={loadMoreLoading}
+                                            style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: loadMoreLoading ? 'default' : 'pointer', fontWeight: 'bold', fontSize: '0.9rem', opacity: loadMoreLoading ? 0.7 : 1 }}
+                                        >
+                                            {loadMoreLoading ? 'Loading…' : 'Load more volumes'}
+                                        </button>
+                                    </div>
+                                )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* MODAL SECTION */}
                 {editingManga && (
                     <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
                         <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
                             <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>Edit Entry</h2>
-                            
+
                             <div style={{ marginBottom: '1.2rem' }}>
                                 <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Status</label>
                                 <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
@@ -226,10 +359,10 @@ export default function MangaList() {
 
                             <div style={{ marginBottom: '2rem' }}>
                                 <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Notes</label>
-                                <textarea 
-                                    value={tempNotes} 
-                                    onChange={(e) => setTempNotes(e.target.value)} 
-                                    style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '100px', fontSize: '1rem', resize: 'none' }} 
+                                <textarea
+                                    value={tempNotes}
+                                    onChange={(e) => setTempNotes(e.target.value)}
+                                    style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '100px', fontSize: '1rem', resize: 'none' }}
                                 />
                             </div>
 

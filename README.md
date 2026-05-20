@@ -27,3 +27,13 @@ Users can search for manga, save them to their list, and manage progress with st
 * **Database:** MongoDB (Mongoose)
 * **API:** Kitsu API
 
+---
+
+## Environment Variables
+
+Create a `frontend/.env.local` file with the following variables:
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG` | Amazon Associates tracking tag appended to volume search links (e.g. `yourtag-20`). Leave blank to omit the tag. |
+
