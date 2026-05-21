@@ -15,7 +15,10 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
+    if (savedTheme === 'light') {
+      setIsDark(false);
+      document.body.classList.remove('dark-theme');
+    } else {
       setIsDark(true);
       document.body.classList.add('dark-theme');
     }
@@ -27,16 +30,18 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
       fetch('/api/user/config')
         .then((res) => res.json())
         .then((data) => {
-          const isDarkTheme = data.theme === 'dark';
+          const isDarkTheme = data.theme !== 'light';
           setIsDark(isDarkTheme);
           if (isDarkTheme) document.body.classList.add('dark-theme');
           else document.body.classList.remove('dark-theme');
         })
         .catch((err) => console.error("Failed to load theme from DB", err));
     } else if (mounted) {
-        // Fallback for logged-out users
         const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
+        if (savedTheme === 'light') {
+          setIsDark(false);
+          document.body.classList.remove('dark-theme');
+        } else {
           setIsDark(true);
           document.body.classList.add('dark-theme');
         }
@@ -98,7 +103,7 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
 
 // 2. The Root App provides the SINGLE ClerkProvider
 export default function App(props: AppProps) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(true);
 
   return (
     <ClerkProvider 

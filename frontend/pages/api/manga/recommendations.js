@@ -74,6 +74,7 @@ export default async function handler(req, res) {
             );
 
         const recommendations = recResults.flatMap(r => r.data || [])
+            .filter((item, idx, self) => item && !isDoujinshi(item) && idx === self.findIndex(t => t.id === item.id))
             .filter(item => !myMangaDexIds.has(item.id))
             .slice(0, 15);
 
