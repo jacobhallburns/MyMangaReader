@@ -39,6 +39,17 @@ async function dbConnect() {
     throw e;
   }
 
+  // One-time migration: drop the old non-sparse unique index on kitsuId.
+  // Without sparse:true, the unique index rejects multiple null kitsuId values,
+  // blocking every MangaDex add after the first.
+  if (!cached._kitsuIdxDropped) {
+    cached._kitsuIdxDropped = true;
+    try {
+      await cached.conn.connection.db.collection('mangas').dropIndex('kitsuId_1');
+      console.log('[DB] Dropped legacy kitsuId_1 unique index');
+    } catch (e) { /* already gone or never existed — no-op */ }
+  }
+
   return cached.conn;
 }
 
