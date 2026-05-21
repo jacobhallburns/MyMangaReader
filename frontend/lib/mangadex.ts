@@ -77,6 +77,39 @@ export interface MangaDexMeta {
   coverUrl: string | undefined;
 }
 
+// Returns a name→UUID map for all genre/theme tags. Not throttled — it's a metadata endpoint.
+export async function getMangaDexTags(): Promise<Record<string, string>> {
+  try {
+    const res = await fetch(`${BASE}/manga/tag`, { headers: { 'User-Agent': 'MyMangaReader/1.0' } });
+    if (!res.ok) return {};
+    const json = await res.json() as { data: any[] };
+    const map: Record<string, string> = {};
+    for (const tag of json.data ?? []) {
+      const group: string = tag.attributes?.group;
+      const name: string | undefined = tag.attributes?.name?.en;
+      if (name && (group === 'genre' || group === 'theme')) map[name] = tag.id;
+    }
+    console.log('[MangaDex]', { event: 'tags_fetched', count: Object.keys(map).length });
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+export async function getMangaDexByTag(tagId: string, limit = 15): Promise<{ data: any[] }> {
+  const url = `${BASE}/manga?includedTags[]=${tagId}&order[rating]=desc&limit=${limit}&includes[]=cover_art&includes[]=author&contentRating[]=safe&contentRating[]=suggestive`;
+  const res = await fetchWithBackoff(url);
+  if (!res.ok) return { data: [] };
+  return res.json() as Promise<{ data: any[] }>;
+}
+
+export async function getTrendingMangaDex(limit = 15): Promise<{ data: any[] }> {
+  const url = `${BASE}/manga?order[followedCount]=desc&limit=${limit}&includes[]=cover_art&includes[]=author&contentRating[]=safe&contentRating[]=suggestive`;
+  const res = await fetchWithBackoff(url);
+  if (!res.ok) return { data: [] };
+  return res.json() as Promise<{ data: any[] }>;
+}
+
 export function extractMeta(mangaData: any): MangaDexMeta {
   const attr = mangaData.attributes ?? {};
   const rels: any[] = mangaData.relationships ?? [];

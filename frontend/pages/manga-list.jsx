@@ -343,6 +343,7 @@ export default function MangaList() {
                             }}>
                                 <img
                                     src={entry.mangaId?.posterImage || "/placeholder.png"}
+                                    referrerPolicy="no-referrer"
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     alt={entry.mangaId?.title || "manga cover"}
                                 />
@@ -419,6 +420,7 @@ export default function MangaList() {
                                     <div style={{ width: '72px', height: '100px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#1a1a1a', border: '1px solid var(--border-color)' }}>
                                         <img
                                             src={detailManga.mangaId?.posterImage || '/placeholder.png'}
+                                            referrerPolicy="no-referrer"
                                             alt=""
                                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         />

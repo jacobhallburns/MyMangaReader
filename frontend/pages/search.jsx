@@ -137,6 +137,7 @@ export default function MangaSearch() {
                                 <div style={{ width: '140px', height: '210px', backgroundColor: '#1a1a1a', borderRadius: '16px', flexShrink: 0, overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 8px 16px rgba(0,0,0,0.4)' }}>
                                     <img
                                         src={m.posterImage || '/placeholder.png'}
+                                        referrerPolicy="no-referrer"
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         alt={m.title || 'manga cover'}
                                     />
