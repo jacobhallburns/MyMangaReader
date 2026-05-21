@@ -48,9 +48,11 @@ export async function getMangaDexById(mangaDexId: string) {
 }
 
 // Returns the published volume structure: { volumes: { "1": { volume, count, chapters }, ... } }
-// Handles ongoing series correctly — returns actual published volumes, not a declared count.
+// No language filter — we want ALL published volumes regardless of translation availability.
+// (Filtering by en would exclude series like One Piece where Viz holds the English license
+// and scanlations have been taken down from MangaDex.)
 export async function getMangaDexAggregate(mangaDexId: string) {
-  const url = `${BASE}/manga/${mangaDexId}/aggregate?translatedLanguage[]=en`;
+  const url = `${BASE}/manga/${mangaDexId}/aggregate`;
   const res = await fetchWithBackoff(url);
   if (!res.ok) throw new Error(`MangaDex aggregate failed: ${res.status}`);
   const json = await res.json() as { volumes: Record<string, any> };

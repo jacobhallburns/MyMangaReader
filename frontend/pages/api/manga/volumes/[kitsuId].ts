@@ -6,7 +6,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAuth } from '@clerk/nextjs/server';
 import dbConnect from '../../../../lib/dbConnect';
 import Manga from '../../../../lib/api/Manga';
-import { searchMangaDex, getMangaDexAggregate } from '../../../../lib/mangadex';
+import { searchMangaDex, getMangaDexById, getMangaDexAggregate, extractMeta } from '../../../../lib/mangadex';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).end();
@@ -14,7 +14,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { userId } = getAuth(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-  // param is now the Manga document's _id
   const { kitsuId: mangaDocId } = req.query as { kitsuId: string };
 
   console.log('[VolumeTracker]', { event: 'volumes_fetch', mangaDocId, userId });
@@ -28,26 +27,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const mangaTitle = manga.title || '';
-  console.log('[VolumeTracker]', { event: 'manga_found', mangaDocId, title: mangaTitle, mangaDexId: manga.mangaDexId ?? null });
+  const empty = { volumes: [], mangaTitle, serialization: null, nextCursor: null, genres: manga.genres || [], author: manga.author || null };
 
-  const empty = { volumes: [], mangaTitle, serialization: null, nextCursor: null };
+  console.log('[VolumeTracker]', {
+    event: 'manga_found',
+    mangaDocId,
+    title: mangaTitle,
+    mangaDexId: manga.mangaDexId ?? null,
+    genreCount: manga.genres?.length ?? 0,
+    hasAuthor: !!manga.author,
+  });
 
-  // Resolve mangaDexId — use stored value or find via title search
   let mangaDexId: string | null = manga.mangaDexId ?? null;
+  let freshGenres: string[] = manga.genres || [];
+  let freshAuthor: string | null = manga.author || null;
+  let freshCover: string | null = manga.posterImage || null;
 
+  // --- Resolve mangaDexId + backfill metadata ---
   if (!mangaDexId) {
+    // First time: search MangaDex by title. The search result includes tags (genres)
+    // and author relationship, so we can backfill all missing metadata in one call.
     try {
       console.log('[VolumeTracker]', { event: 'mangadex_search', title: mangaTitle });
       const searchResult = await searchMangaDex(mangaTitle, 1);
       const first = searchResult.data?.[0];
       if (first?.id) {
         mangaDexId = first.id;
-        // Cache the mangaDexId so future requests skip this search
-        await Manga.findByIdAndUpdate(mangaDocId, { mangaDexId });
-        console.log('[VolumeTracker]', { event: 'mangadex_id_cached', mangaDocId, mangaDexId });
+        const meta = extractMeta(first);
+
+        const dbUpdate: Record<string, any> = { mangaDexId };
+        if (meta.genres.length > 0) { dbUpdate.genres = meta.genres; freshGenres = meta.genres; }
+        if (meta.author) { dbUpdate.author = meta.author; freshAuthor = meta.author; }
+        if (meta.altTitles.length > 0) dbUpdate.altTitles = meta.altTitles;
+        if (meta.coverUrl && !manga.posterImage) { dbUpdate.posterImage = meta.coverUrl; freshCover = meta.coverUrl; }
+
+        await Manga.findByIdAndUpdate(mangaDocId, dbUpdate);
+        console.log('[VolumeTracker]', { event: 'metadata_backfilled', mangaDexId, genres: freshGenres.length, author: freshAuthor });
       }
     } catch (err: any) {
       console.error('[VolumeTracker]', { event: 'mangadex_search_error', title: mangaTitle, error: err.message, stack: err.stack });
+    }
+  } else if (!manga.genres?.length || !manga.author) {
+    // mangaDexId known but metadata incomplete — fetch full detail to fill gaps
+    try {
+      console.log('[VolumeTracker]', { event: 'metadata_fetch', mangaDexId, missingGenres: !manga.genres?.length, missingAuthor: !manga.author });
+      const detail = await getMangaDexById(mangaDexId);
+      const meta = extractMeta(detail.data);
+
+      const dbUpdate: Record<string, any> = {};
+      if (!manga.genres?.length && meta.genres.length > 0) { dbUpdate.genres = meta.genres; freshGenres = meta.genres; }
+      if (!manga.author && meta.author) { dbUpdate.author = meta.author; freshAuthor = meta.author; }
+      if (!manga.posterImage && meta.coverUrl) { dbUpdate.posterImage = meta.coverUrl; freshCover = meta.coverUrl; }
+
+      if (Object.keys(dbUpdate).length > 0) {
+        await Manga.findByIdAndUpdate(mangaDocId, dbUpdate);
+        console.log('[VolumeTracker]', { event: 'metadata_updated', mangaDexId, fields: Object.keys(dbUpdate) });
+      }
+    } catch (err: any) {
+      console.error('[VolumeTracker]', { event: 'metadata_fetch_error', mangaDexId, error: err.message });
     }
   }
 
@@ -56,29 +93,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ...empty, _warning: 'Series not found on MangaDex' });
   }
 
+  // --- Fetch volume structure from MangaDex aggregate ---
   try {
     const aggregate = await getMangaDexAggregate(mangaDexId);
 
-    // Extract and sort volume numbers from the aggregate response.
-    // "none" key holds chapters with no assigned volume — skip it.
+    // "none" key holds chapters with no volume assignment — skip it.
     const volumeNums = Object.keys(aggregate.volumes || {})
       .filter(k => k !== 'none' && !isNaN(parseFloat(k)))
       .map(k => parseFloat(k))
       .sort((a, b) => a - b);
 
-    console.log('[VolumeTracker]', { event: 'volumes_resolved', mangaDexId, volumeCount: volumeNums.length });
+    console.log('[VolumeTracker]', { event: 'volumes_resolved', mangaDexId, title: mangaTitle, volumeCount: volumeNums.length });
 
     if (volumeNums.length === 0) {
-      // Aggregate returned nothing — series may be fully unlisted or English TL has no volumes
       console.warn('[VolumeTracker]', { event: 'aggregate_empty', mangaDexId, title: mangaTitle });
-      return res.status(200).json({ ...empty, _warning: 'Volume data unavailable — series may have no English releases yet' });
+      return res.status(200).json({
+        ...empty,
+        genres: freshGenres,
+        author: freshAuthor,
+        _warning: 'Volume data unavailable — no chapter entries found on MangaDex for this series',
+      });
     }
 
     const volumes = volumeNums.map(n => ({ volumeNumber: n, chapters: [] }));
-    return res.status(200).json({ volumes, mangaTitle, serialization: null, nextCursor: null });
+
+    return res.status(200).json({
+      volumes,
+      mangaTitle,
+      serialization: null,
+      nextCursor: null,
+      genres: freshGenres,   // return fresh metadata so popup updates without a page reload
+      author: freshAuthor,
+      posterImage: freshCover,
+    });
 
   } catch (err: any) {
     console.error('[VolumeTracker]', { event: 'aggregate_error', mangaDexId, error: err.message, stack: err.stack });
-    return res.status(200).json({ ...empty, _warning: 'Failed to load volume data from MangaDex' });
+    return res.status(200).json({ ...empty, genres: freshGenres, author: freshAuthor, _warning: 'Failed to load volume data from MangaDex' });
   }
 }

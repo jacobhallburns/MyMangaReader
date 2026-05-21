@@ -137,7 +137,7 @@ export default function MangaList() {
         try {
             const res = await fetch(`/api/manga/volumes/${mangaDocId}`);
             const data = await res.json();
-            console.log('[VolumePopup]', { event: 'volumes_response', title, ok: res.ok, count: data.volumes?.length ?? 0, warning: data._warning ?? null });
+            console.log('[VolumePopup]', { event: 'volumes_response', title, ok: res.ok, count: data.volumes?.length ?? 0, genres: data.genres?.length ?? 0, warning: data._warning ?? null });
             if (!res.ok) {
                 setVolumesError(data?.error || `API error ${res.status}`);
                 return;
@@ -149,6 +149,26 @@ export default function MangaList() {
             setNextCursor(data.nextCursor ?? null);
             setSerialization(data.serialization ?? null);
             setMangaTitle(data.mangaTitle || '');
+
+            // Backfill genres/author/cover into local state so popup and card list both
+            // show fresh MangaDex metadata immediately without requiring a page refresh.
+            if (data.genres?.length > 0 || data.author || data.posterImage) {
+                const patch = {
+                    ...(data.genres?.length > 0 ? { genres: data.genres } : {}),
+                    ...(data.author ? { author: data.author } : {}),
+                };
+                // Update the manga list (card view)
+                setManga(prev => prev.map(m =>
+                    m.mangaId?._id === mangaDocId
+                        ? { ...m, mangaId: { ...m.mangaId, ...patch } }
+                        : m
+                ));
+                // Update the popup snapshot so genres/author show immediately
+                setDetailManga(prev => prev
+                    ? { ...prev, mangaId: { ...prev.mangaId, ...patch } }
+                    : prev
+                );
+            }
         } catch (err) {
             console.error('[VolumePopup]', { event: 'fetch_error', title, error: err.message });
             setVolumesError(err.message || 'Network error');
