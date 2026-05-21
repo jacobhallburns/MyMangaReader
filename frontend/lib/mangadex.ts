@@ -31,7 +31,7 @@ async function fetchWithBackoff(url: string, options?: RequestInit, retries = 3)
 }
 
 export async function searchMangaDex(query: string, limit = 20) {
-  const url = `${BASE}/manga?title=${encodeURIComponent(query)}&limit=${limit}&includes[]=cover_art&includes[]=author`;
+  const url = `${BASE}/manga?title=${encodeURIComponent(query)}&limit=${limit}&includes[]=cover_art&includes[]=author&contentRating[]=safe`;
   const res = await fetchWithBackoff(url);
   if (!res.ok) throw new Error(`MangaDex search failed: ${res.status}`);
   const json = await res.json() as { data: any[] };
@@ -97,14 +97,14 @@ export async function getMangaDexTags(): Promise<Record<string, string>> {
 }
 
 export async function getMangaDexByTag(tagId: string, limit = 15): Promise<{ data: any[] }> {
-  const url = `${BASE}/manga?includedTags[]=${tagId}&order[rating]=desc&limit=${limit}&includes[]=cover_art&includes[]=author&contentRating[]=safe&contentRating[]=suggestive`;
+  const url = `${BASE}/manga?includedTags[]=${tagId}&order[rating]=desc&limit=${limit}&includes[]=cover_art&includes[]=author&contentRating[]=safe`;
   const res = await fetchWithBackoff(url);
   if (!res.ok) return { data: [] };
   return res.json() as Promise<{ data: any[] }>;
 }
 
 export async function getTrendingMangaDex(limit = 15): Promise<{ data: any[] }> {
-  const url = `${BASE}/manga?order[followedCount]=desc&limit=${limit}&includes[]=cover_art&includes[]=author&contentRating[]=safe&contentRating[]=suggestive`;
+  const url = `${BASE}/manga?order[followedCount]=desc&limit=${limit}&includes[]=cover_art&includes[]=author&contentRating[]=safe`;
   const res = await fetchWithBackoff(url);
   if (!res.ok) return { data: [] };
   return res.json() as Promise<{ data: any[] }>;

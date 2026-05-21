@@ -1,5 +1,6 @@
 import dbConnect from '../../../lib/dbConnect';
 import UserManga from '../../../lib/api/UserManga';
+import Manga from '../../../lib/api/Manga';
 import { getAuth } from '@clerk/nextjs/server';
 import { extractMeta, getCoverUrl, getMangaDexTags, getMangaDexByTag, getTrendingMangaDex } from '../../../lib/mangadex';
 
@@ -11,6 +12,7 @@ export default async function handler(req, res) {
 
     const { userId } = getAuth(req);
     let myMangaDexIds = new Set();
+    let myRatingsMap = new Map(); // mangaDexId -> user's rating
     let genreScores = {};
 
     try {
@@ -20,6 +22,8 @@ export default async function handler(req, res) {
             myMangaDexIds = new Set(list.map(entry => entry.mangaId?.mangaDexId).filter(Boolean));
             list.forEach(entry => {
                 const globalData = entry.mangaId;
+                if (!globalData?.mangaDexId) return;
+                if (entry.rating > 0) myRatingsMap.set(globalData.mangaDexId, entry.rating);
                 if (!globalData?.genres) return;
                 const weight = (Number(entry.rating || 0) ** 2) + (entry.status === 'reading' ? 5 : 2);
                 globalData.genres.forEach(g => {
@@ -64,14 +68,33 @@ export default async function handler(req, res) {
             console.error('[Recommendations] Trending failed:', err.message);
         }
 
+        const isDoujinshi = (item) =>
+            (item.attributes?.tags ?? []).some(
+                t => t.attributes?.group === 'format' && t.attributes?.name?.en === 'Doujinshi'
+            );
+
+        const recommendations = recResults.flatMap(r => r.data || [])
+            .filter(item => !myMangaDexIds.has(item.id))
+            .slice(0, 15);
+
+        // Bulk-fetch stored ratings for all items we're about to return
+        const allItems = [...recommendations, ...(trendingResult.data || [])];
+        const mangaDexIds = [...new Set(allItems.map(item => item.id).filter(Boolean))];
+        const mangaRecords = await Manga.find(
+            { mangaDexId: { $in: mangaDexIds } },
+            'mangaDexId averageRating ratingCount'
+        ).lean();
+        const dbRatingMap = new Map(mangaRecords.map(m => [m.mangaDexId, m]));
+
         const formatManga = (items) => (items || [])
-            .filter((item, idx, self) => item && idx === self.findIndex(t => t.id === item.id))
+            .filter((item, idx, self) => item && !isDoujinshi(item) && idx === self.findIndex(t => t.id === item.id))
             .map(item => {
                 const meta = extractMeta(item);
                 const coverRel = (item.relationships || []).find(r => r.type === 'cover_art');
                 const posterImage = coverRel?.attributes?.fileName
                     ? getCoverUrl(item.id, coverRel.attributes.fileName, 512)
                     : null;
+                const dbRecord = dbRatingMap.get(item.id);
                 return {
                     mangaDexId: item.id,
                     title: meta.title,
@@ -79,13 +102,12 @@ export default async function handler(req, res) {
                     synopsis: meta.synopsis,
                     author: meta.author,
                     genres: meta.genres,
+                    averageRating: dbRecord?.averageRating ?? 0,
+                    ratingCount: dbRecord?.ratingCount ?? 0,
+                    userRating: myRatingsMap.get(item.id) ?? 0,
                     _raw: item,
                 };
             });
-
-        const recommendations = recResults.flatMap(r => r.data || [])
-            .filter(item => !myMangaDexIds.has(item.id))
-            .slice(0, 15);
 
         res.status(200).json({
             selectedGenre: targetGenres.join(', '),

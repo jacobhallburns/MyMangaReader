@@ -15,7 +15,8 @@ const MangaSchema = new mongoose.Schema({
   mangaType: String,
   status: String,
   genres: { type: [String], default: [] },
-  // TODO: define a full genre taxonomy once MangaDex tags are normalized
+  averageRating: { type: Number, default: 0 },
+  ratingCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 export default mongoose.models.Manga || mongoose.model('Manga', MangaSchema);

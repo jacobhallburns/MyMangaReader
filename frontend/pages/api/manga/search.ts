@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { searchMangaDex, extractMeta, getCoverUrl } from '../../../lib/mangadex';
+import dbConnect from '../../../lib/dbConnect';
+import Manga from '../../../lib/api/Manga';
 
 export interface SearchResult {
   id: string;          // mangaDexId
@@ -11,6 +13,8 @@ export interface SearchResult {
   status: string | undefined;
   altTitles: string[];
   volumeCount: number | undefined;
+  averageRating: number;
+  ratingCount: number;
   _raw: any;           // full MangaDex data object, passed through to add.ts
 }
 
@@ -23,14 +27,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { data } = await searchMangaDex(q, 20);
 
-    const results: SearchResult[] = (data || []).map((manga: any) => {
-      const meta = extractMeta(manga);
+    const isDoujinshi = (manga: any) =>
+      (manga.attributes?.tags ?? []).some(
+        (t: any) => t.attributes?.group === 'format' && t.attributes?.name?.en === 'Doujinshi'
+      );
 
-      // Construct cover URL from the relationship included in the search response
+    const filtered = (data || []).filter((manga: any) => !isDoujinshi(manga));
+
+    // Bulk-fetch any stored ratings for these results
+    await dbConnect();
+    const mangaDexIds = filtered.map((m: any) => m.id);
+    const mangaRecords = await Manga.find(
+      { mangaDexId: { $in: mangaDexIds } },
+      'mangaDexId averageRating ratingCount'
+    ).lean() as any[];
+    const ratingMap = new Map(mangaRecords.map((m: any) => [m.mangaDexId, m]));
+
+    const results: SearchResult[] = filtered.map((manga: any) => {
+      const meta = extractMeta(manga);
       const coverRel = (manga.relationships || []).find((r: any) => r.type === 'cover_art');
       const coverUrl = coverRel?.attributes?.fileName
         ? getCoverUrl(manga.id, coverRel.attributes.fileName, 512)
         : null;
+      const dbRecord = ratingMap.get(manga.id) as any;
 
       return {
         id: manga.id,
@@ -42,6 +61,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: meta.status,
         altTitles: meta.altTitles,
         volumeCount: meta.volumeCount,
+        averageRating: dbRecord?.averageRating ?? 0,
+        ratingCount: dbRecord?.ratingCount ?? 0,
         _raw: manga,
       };
     });

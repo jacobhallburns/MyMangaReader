@@ -1,6 +1,7 @@
 import dbConnect from '../../../lib/dbConnect';
 import UserManga from '../../../lib/api/UserManga';
 import { getAuth } from '@clerk/nextjs/server';
+import { updateMangaRating } from '../../../lib/updateMangaRating';
 
 export default async function handler(req, res) {
     await dbConnect();
@@ -26,6 +27,7 @@ export default async function handler(req, res) {
             );
 
             if (!updated) return res.status(404).json({ error: "Entry not found" });
+            await updateMangaRating(updated.mangaId);
             return res.status(200).json(updated);
         } catch (err) {
             console.error("Update Error:", err);
@@ -37,6 +39,7 @@ export default async function handler(req, res) {
         try {
             const deleted = await UserManga.findOneAndDelete({ _id: id, userId });
             if (!deleted) return res.status(404).json({ error: "Entry not found" });
+            await updateMangaRating(deleted.mangaId);
             return res.status(204).send();
         } catch (err) {
             return res.status(400).json({ error: err.message });

@@ -1,7 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 
-const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
+const RatingDisplay = ({ userRating, averageRating, ratingCount }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 0.75rem 0', flexWrap: 'wrap' }}>
+        {userRating > 0 && (
+            <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.82rem' }}>★ {userRating}</span>
+        )}
+        {averageRating > 0 ? (
+            <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
+                ★ {averageRating.toFixed(2)}{' '}
+                <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({ratingCount})</span>
+            </span>
+        ) : (
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>No ratings</span>
+        )}
+    </div>
+);
+
+const RecCard = ({ manga, onAdded, isAlreadyAdded, userRating }) => {
     const { isSignedIn } = useUser();
     const { redirectToSignIn } = useClerk();
     const [showModal, setShowModal] = useState(false);
@@ -86,6 +102,8 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
                         ))}
                     </div>
                 )}
+
+                <RatingDisplay userRating={userRating} averageRating={manga.averageRating ?? 0} ratingCount={manga.ratingCount ?? 0} />
 
                 <p style={{
                     color: 'var(--text-muted)',
@@ -238,7 +256,7 @@ export default function Recommendations() {
                         </p>
                         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
                             {recs.basedOnTaste.map(m => (
-                                <RecCard key={m.mangaDexId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.mangaDexId)} />
+                                <RecCard key={m.mangaDexId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.mangaDexId)} userRating={m.userRating ?? 0} />
                             ))}
                         </ul>
                     </section>
@@ -251,7 +269,7 @@ export default function Recommendations() {
                     ) : (
                         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
                             {recs?.trending?.map(m => (
-                                <RecCard key={m.mangaDexId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.mangaDexId)} />
+                                <RecCard key={m.mangaDexId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.mangaDexId)} userRating={m.userRating ?? 0} />
                             ))}
                         </ul>
                     )}

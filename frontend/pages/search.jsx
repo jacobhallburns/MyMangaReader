@@ -226,6 +226,19 @@ export default function MangaSearch() {
                                                 ))}
                                             </div>
                                         )}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 0.5rem 0', flexWrap: 'wrap' }}>
+                                            {(entry?.rating ?? 0) > 0 && (
+                                                <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.82rem' }}>★ {entry.rating}</span>
+                                            )}
+                                            {m.averageRating > 0 ? (
+                                                <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
+                                                    ★ {m.averageRating.toFixed(2)}{' '}
+                                                    <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({m.ratingCount})</span>
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>No ratings</span>
+                                            )}
+                                        </div>
                                         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: 0 }}>
                                             {m.synopsis || 'No synopsis available.'}
                                         </p>

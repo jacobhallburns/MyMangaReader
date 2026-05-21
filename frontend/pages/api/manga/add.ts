@@ -4,6 +4,7 @@ import Manga from '../../../lib/api/Manga';
 import UserManga from '../../../lib/api/UserManga';
 import { getAuth } from '@clerk/nextjs/server';
 import { extractMeta } from '../../../lib/mangadex';
+import { updateMangaRating } from '../../../lib/updateMangaRating';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -53,6 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { upsert: true, new: true }
       );
 
+      if (rating) await updateMangaRating(globalManga._id);
       return res.status(200).json({ success: true, manga: globalManga, userEntry });
     } catch (error: any) {
       console.error('[Add]', { event: 'mangadex_add_error', mangaDexId: mangaDexData.id, message: error?.message, code: error?.code, error });
