@@ -6,7 +6,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAuth } from '@clerk/nextjs/server';
 import dbConnect from '../../../../lib/dbConnect';
 import Manga from '../../../../lib/api/Manga';
-import { searchMangaDex, getMangaDexById, getMangaDexAggregate, extractMeta } from '../../../../lib/mangadex';
+import { searchMangaDex, getMangaDexById, extractMeta } from '../../../../lib/mangadex';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).end();
@@ -93,42 +93,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ ...empty, _warning: 'Series not found on MangaDex' });
   }
 
-  // --- Fetch volume structure from MangaDex aggregate ---
-  try {
-    const aggregate = await getMangaDexAggregate(mangaDexId);
+  // --- Resolve volume count ---
+  // We enumerate 1..N rather than using the aggregate endpoint.
+  // The aggregate only reflects chapters currently on MangaDex, so DMCA takedowns
+  // (e.g. Monster, One Piece vols 8-60) would produce gaps or empty results.
+  // lastVolume/volumes from the MangaDex detail record is the correct source of truth.
+  let volumeMax = manga.volumeCount || 0;
 
-    // "none" key holds chapters with no volume assignment — skip it.
-    const volumeNums = Object.keys(aggregate.volumes || {})
-      .filter(k => k !== 'none' && !isNaN(parseFloat(k)))
-      .map(k => parseFloat(k))
-      .sort((a, b) => a - b);
-
-    console.log('[VolumeTracker]', { event: 'volumes_resolved', mangaDexId, title: mangaTitle, volumeCount: volumeNums.length });
-
-    if (volumeNums.length === 0) {
-      console.warn('[VolumeTracker]', { event: 'aggregate_empty', mangaDexId, title: mangaTitle });
-      return res.status(200).json({
-        ...empty,
-        genres: freshGenres,
-        author: freshAuthor,
-        _warning: 'Volume data unavailable — no chapter entries found on MangaDex for this series',
-      });
+  if (volumeMax === 0) {
+    // volumeCount not stored yet — fetch it live from MangaDex detail.
+    try {
+      const detail = await getMangaDexById(mangaDexId);
+      const meta = extractMeta(detail.data);
+      if (meta.volumeCount) {
+        volumeMax = meta.volumeCount;
+        await Manga.findByIdAndUpdate(mangaDocId, { $set: { volumeCount: meta.volumeCount } });
+        console.log('[VolumeTracker]', { event: 'volumecount_fetched', mangaDexId, volumeCount: meta.volumeCount });
+      }
+    } catch (err: any) {
+      console.warn('[VolumeTracker]', { event: 'volumecount_fetch_failed', mangaDexId, error: err.message });
     }
-
-    const volumes = volumeNums.map(n => ({ volumeNumber: n, chapters: [] }));
-
-    return res.status(200).json({
-      volumes,
-      mangaTitle,
-      serialization: null,
-      nextCursor: null,
-      genres: freshGenres,   // return fresh metadata so popup updates without a page reload
-      author: freshAuthor,
-      posterImage: freshCover,
-    });
-
-  } catch (err: any) {
-    console.error('[VolumeTracker]', { event: 'aggregate_error', mangaDexId, error: err.message, stack: err.stack });
-    return res.status(200).json({ ...empty, genres: freshGenres, author: freshAuthor, _warning: 'Failed to load volume data from MangaDex' });
   }
+
+  console.log('[VolumeTracker]', { event: 'volumes_resolved', mangaDexId, title: mangaTitle, volumeMax });
+
+  if (volumeMax === 0) {
+    console.warn('[VolumeTracker]', { event: 'no_volume_data', mangaDexId, title: mangaTitle });
+    return res.status(200).json({
+      ...empty,
+      genres: freshGenres,
+      author: freshAuthor,
+      _warning: 'Volume data unavailable — series has no volume information on MangaDex',
+    });
+  }
+
+  const volumes = Array.from({ length: volumeMax }, (_, i) => ({ volumeNumber: i + 1, chapters: [] }));
+
+  return res.status(200).json({
+    volumes,
+    mangaTitle,
+    serialization: null,
+    nextCursor: null,
+    genres: freshGenres,
+    author: freshAuthor,
+    posterImage: freshCover,
+  });
 }

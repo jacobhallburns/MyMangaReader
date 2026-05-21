@@ -37,12 +37,6 @@ export default function MangaList() {
     const [pendingAdvancePage, setPendingAdvancePage] = useState(null);
     const [volumeStates, setVolumeStates] = useState({}); // { "1": { read, online, physical }, ... }
 
-    // Request a Title modal state
-    const [showRequestTitle, setShowRequestTitle] = useState(false);
-    const [requestTitleText, setRequestTitleText] = useState('');
-    const [requestNotes, setRequestNotes] = useState('');
-    const [requestSubmitting, setRequestSubmitting] = useState(false);
-    const [requestDone, setRequestDone] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -259,28 +253,6 @@ export default function MangaList() {
         }
     };
 
-    const handleRequestTitle = async () => {
-        if (!requestTitleText.trim()) return;
-        setRequestSubmitting(true);
-        try {
-            await fetch('/api/manga/request-title', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: requestTitleText, notes: requestNotes }),
-            });
-            setRequestDone(true);
-            setTimeout(() => {
-                setShowRequestTitle(false);
-                setRequestTitleText('');
-                setRequestNotes('');
-                setRequestDone(false);
-            }, 1500);
-        } catch {
-            alert('Failed to submit request. Please try again.');
-        } finally {
-            setRequestSubmitting(false);
-        }
-    };
 
     if (loading) return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -442,18 +414,10 @@ export default function MangaList() {
                                             </div>
                                         )}
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexShrink: 0 }}>
-                                        <button
-                                            onClick={() => { setShowRequestTitle(true); setRequestDone(false); }}
-                                            style={{ padding: '0.38rem 0.85rem', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                        >
-                                            + Request Title
-                                        </button>
-                                        <button
-                                            onClick={() => setDetailManga(null)}
-                                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.1rem' }}
-                                        >✕</button>
-                                    </div>
+                                    <button
+                                        onClick={() => setDetailManga(null)}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.1rem', flexShrink: 0 }}
+                                    >✕</button>
                                 </div>
 
                                 {/* Stats summary bar */}
@@ -562,42 +526,6 @@ export default function MangaList() {
                             </div>
                         </div>
 
-                        {/* REQUEST TITLE MODAL (layered above volume popup) */}
-                        {showRequestTitle && (
-                            <div
-                                onClick={() => setShowRequestTitle(false)}
-                                style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}
-                            >
-                                <div
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{ width: '90%', maxWidth: '400px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 style={{ margin: 0, color: 'var(--text-main)', fontWeight: '800', fontSize: '1.2rem' }}>Request a Title</h3>
-                                        <button onClick={() => setShowRequestTitle(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
-                                    </div>
-                                    <input
-                                        value={requestTitleText}
-                                        onChange={(e) => setRequestTitleText(e.target.value)}
-                                        placeholder="Series title..."
-                                        style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '1rem' }}
-                                    />
-                                    <textarea
-                                        value={requestNotes}
-                                        onChange={(e) => setRequestNotes(e.target.value)}
-                                        placeholder="Additional notes (optional)..."
-                                        style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '0.92rem', minHeight: '75px', resize: 'none' }}
-                                    />
-                                    <button
-                                        onClick={handleRequestTitle}
-                                        disabled={requestSubmitting || !requestTitleText.trim()}
-                                        style={{ padding: '0.9rem', borderRadius: '14px', background: requestDone ? '#4CAF50' : 'var(--accent-green)', color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '1rem', cursor: requestSubmitting || !requestTitleText.trim() ? 'not-allowed' : 'pointer', opacity: requestSubmitting || !requestTitleText.trim() ? 0.65 : 1 }}
-                                    >
-                                        {requestDone ? 'Submitted!' : requestSubmitting ? 'Submitting...' : 'Submit Request'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </>
                 )}
 

@@ -8,8 +8,14 @@ export default function MangaSearch() {
 
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
+    const [hasSearched, setHasSearched] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    const [requestTitleText, setRequestTitleText] = useState('');
+    const [requestNotes, setRequestNotes] = useState('');
+    const [requestSubmitting, setRequestSubmitting] = useState(false);
+    const [requestDone, setRequestDone] = useState(false);
 
     // Keyed by mangaDexId for MangaDex results
     const [addedIds, setAddedIds] = useState(new Set());
@@ -61,12 +67,32 @@ export default function MangaSearch() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `Search failed (${res.status})`);
             setResults(data.results || []);
+            setHasSearched(true);
+            setRequestDone(false);
             console.log('[Search] results:', data.results?.length ?? 0);
         } catch (err) {
             console.error('[Search] error:', err);
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRequestTitle = async () => {
+        if (!requestTitleText.trim()) return;
+        setRequestSubmitting(true);
+        try {
+            await fetch('/api/manga/request-title', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: requestTitleText, notes: requestNotes }),
+            });
+            setRequestDone(true);
+            setTimeout(() => { setRequestTitleText(''); setRequestNotes(''); setRequestDone(false); }, 2000);
+        } catch {
+            alert('Failed to submit request. Please try again.');
+        } finally {
+            setRequestSubmitting(false);
         }
     };
 
@@ -142,6 +168,32 @@ export default function MangaSearch() {
                     </form>
                     {error && <p style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '0.5rem 0 0 0' }}>{error}</p>}
                 </div>
+
+                {hasSearched && !loading && results.length === 0 && !error && (
+                    <div style={{ marginTop: '2rem', padding: '2rem', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ color: 'var(--text-main)', fontWeight: '700', fontSize: '1.1rem', margin: '0 0 0.3rem 0' }}>No results found</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 1.5rem 0' }}>Can't find it on MangaDex? Request it and we'll look into adding it.</p>
+                        <input
+                            value={requestTitleText}
+                            onChange={(e) => setRequestTitleText(e.target.value)}
+                            placeholder="Series title..."
+                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '1rem', boxSizing: 'border-box', marginBottom: '0.75rem' }}
+                        />
+                        <textarea
+                            value={requestNotes}
+                            onChange={(e) => setRequestNotes(e.target.value)}
+                            placeholder="Additional notes (optional)..."
+                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '0.92rem', minHeight: '70px', resize: 'none', boxSizing: 'border-box', marginBottom: '0.75rem' }}
+                        />
+                        <button
+                            onClick={handleRequestTitle}
+                            disabled={requestSubmitting || !requestTitleText.trim()}
+                            style={{ padding: '0.8rem 1.6rem', borderRadius: '12px', background: requestDone ? '#4CAF50' : 'var(--text-main)', color: 'var(--bg-color)', border: 'none', fontWeight: '700', fontSize: '0.95rem', cursor: requestSubmitting || !requestTitleText.trim() ? 'not-allowed' : 'pointer', opacity: requestSubmitting || !requestTitleText.trim() ? 0.6 : 1 }}
+                        >
+                            {requestDone ? 'Submitted!' : requestSubmitting ? 'Submitting...' : 'Request Title'}
+                        </button>
+                    </div>
+                )}
 
                 <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1.5rem' }}>
                     {results.map((m) => {
