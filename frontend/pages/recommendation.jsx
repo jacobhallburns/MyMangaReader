@@ -8,8 +8,12 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
     const [tempStatus, setTempStatus] = useState('plan_to_read');
     const [tempRating, setTempRating] = useState(0);
     const [tempNotes, setTempNotes] = useState('');
+    const [addError, setAddError] = useState(null);
+    const [adding, setAdding] = useState(false);
 
     const handleConfirmAdd = async () => {
+        setAddError(null);
+        setAdding(true);
         try {
             const res = await fetch('/api/manga/add', {
                 method: 'POST',
@@ -24,9 +28,16 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
             if (res.ok) {
                 onAdded(manga.mangaDexId);
                 setShowModal(false);
+            } else {
+                const body = await res.json().catch(() => ({}));
+                setAddError(body.detail || body.error || `Server error (${res.status})`);
+                console.error('[RecCard] add failed:', res.status, body);
             }
         } catch (err) {
-            console.error("Failed to add manga:", err);
+            setAddError(err.message || 'Network error');
+            console.error('Failed to add manga:', err);
+        } finally {
+            setAdding(false);
         }
     };
 
@@ -146,11 +157,16 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
                             />
                         </div>
 
+                        {addError && (
+                            <p style={{ color: '#ff4444', fontSize: '0.85rem', margin: '0 0 1rem 0', background: 'rgba(255,68,68,0.1)', padding: '0.6rem 0.9rem', borderRadius: '8px' }}>
+                                {addError}
+                            </p>
+                        )}
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button onClick={handleConfirmAdd} style={{ flex: 1, padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 900, border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
-                                + Add Manga
+                            <button onClick={handleConfirmAdd} disabled={adding} style={{ flex: 1, padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 900, border: 'none', cursor: adding ? 'not-allowed' : 'pointer', fontSize: '1rem', opacity: adding ? 0.7 : 1 }}>
+                                {adding ? 'Adding...' : '+ Add Manga'}
                             </button>
-                            <button onClick={() => setShowModal(false)} style={{ padding: '1rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '14px', cursor: 'pointer' }}>
+                            <button onClick={() => { setShowModal(false); setAddError(null); }} style={{ padding: '1rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '14px', cursor: 'pointer' }}>
                                 Cancel
                             </button>
                         </div>
@@ -162,7 +178,7 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded }) => {
 };
 
 export default function Recommendations() {
-    const { isLoaded } = useAuth();
+    const { isLoaded, isSignedIn } = useAuth();
     const [recs, setRecs] = useState({ selectedGenre: '', basedOnTaste: [], trending: [] });
     const [addedIds, setAddedIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
@@ -170,6 +186,20 @@ export default function Recommendations() {
 
     useEffect(() => {
         if (!isLoaded) return;
+        if (isSignedIn) {
+            fetch('/api/manga/collection')
+                .then(r => r.ok ? r.json() : [])
+                .then(list => {
+                    if (!Array.isArray(list)) return;
+                    const ids = new Set();
+                    list.forEach(entry => {
+                        const mdId = entry.mangaId?.mangaDexId;
+                        if (mdId) ids.add(mdId);
+                    });
+                    setAddedIds(ids);
+                })
+                .catch(() => {});
+        }
         fetch('/api/manga/recommendations')
             .then(res => {
                 if (!res.ok) {
@@ -187,7 +217,7 @@ export default function Recommendations() {
                 setError('Failed to load recommendations.');
                 setLoading(false);
             });
-    }, [isLoaded]);
+    }, [isLoaded, isSignedIn]);
 
     const handleMangaAdded = (mangaDexId) => {
         setAddedIds(prev => new Set(prev).add(mangaDexId));

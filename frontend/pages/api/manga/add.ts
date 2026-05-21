@@ -43,20 +43,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const globalManga = await Manga.findOneAndUpdate(
         { mangaDexId: mangaDexData.id },
-        mangaFields,
+        { $set: mangaFields },
         { upsert: true, new: true }
       );
 
       const userEntry = await UserManga.findOneAndUpdate(
         { userId, mangaId: globalManga._id },
-        { status: status || 'plan_to_read', rating: rating || 0, notes: notes || '' },
+        { $set: { status: status || 'plan_to_read', rating: rating || 0, notes: notes || '' } },
         { upsert: true, new: true }
       );
 
       return res.status(200).json({ success: true, manga: globalManga, userEntry });
-    } catch (error) {
-      console.error('[Add]', { event: 'mangadex_add_error', mangaDexId: mangaDexData.id, error });
-      return res.status(500).json({ error: 'Failed to add manga' });
+    } catch (error: any) {
+      console.error('[Add]', { event: 'mangadex_add_error', mangaDexId: mangaDexData.id, message: error?.message, code: error?.code, error });
+      return res.status(500).json({ error: 'Failed to add manga', detail: error?.message });
     }
   }
 
