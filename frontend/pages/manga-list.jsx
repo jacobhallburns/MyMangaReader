@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 const VOLUMES_PER_PAGE = 10;
+const fmtRating = (n) => String(parseFloat(n.toFixed(2)));
 
 function getPageNumbers(current, total) {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -350,11 +351,19 @@ export default function MangaList() {
                                         <span style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'rgba(76, 175, 80, 0.15)', color: 'var(--accent-green)', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                             {entry.status.replace(/_/g, ' ')}
                                         </span>
-                                        {entry.rating > 0 && (
-                                            <span style={{ color: '#FFD700', fontSize: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                                ★ {entry.rating}
-                                            </span>
-                                        )}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                            {entry.rating > 0 && (
+                                                <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.82rem' }}>★ {entry.rating}</span>
+                                            )}
+                                            {(entry.mangaId?.averageRating ?? 0) > 0 ? (
+                                                <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
+                                                    ★ {fmtRating(entry.mangaId.averageRating)}{' '}
+                                                    <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({entry.mangaId.ratingCount})</span>
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>No ratings</span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <button

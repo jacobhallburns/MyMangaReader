@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 
+const fmtRating = (n) => String(parseFloat(n.toFixed(2)));
+
 const RatingDisplay = ({ userRating, averageRating, ratingCount }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 0.75rem 0', flexWrap: 'wrap' }}>
         {userRating > 0 && (
@@ -8,7 +10,7 @@ const RatingDisplay = ({ userRating, averageRating, ratingCount }) => (
         )}
         {averageRating > 0 ? (
             <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
-                ★ {averageRating.toFixed(2)}{' '}
+                ★ {fmtRating(averageRating)}{' '}
                 <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({ratingCount})</span>
             </span>
         ) : (

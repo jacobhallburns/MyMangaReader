@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useClerk } from '@clerk/nextjs';
 
+const fmtRating = (n) => String(parseFloat(n.toFixed(2)));
+
 export default function MangaSearch() {
     const { isSignedIn, isLoaded } = useAuth();
     const { redirectToSignIn } = useClerk();
@@ -232,7 +234,7 @@ export default function MangaSearch() {
                                             )}
                                             {m.averageRating > 0 ? (
                                                 <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
-                                                    ★ {m.averageRating.toFixed(2)}{' '}
+                                                    ★ {fmtRating(m.averageRating)}{' '}
                                                     <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({m.ratingCount})</span>
                                                 </span>
                                             ) : (
