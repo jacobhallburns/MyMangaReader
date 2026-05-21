@@ -98,7 +98,6 @@ export default function MangaList() {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm("Remove this from your list?")) return;
         try {
             const res = await fetch(`/api/manga/${editingManga._id}`, { method: 'DELETE' });
             if (res.ok) setManga(prev => prev.filter(m => m._id !== editingManga._id));
@@ -496,6 +495,11 @@ export default function MangaList() {
                                         });
                                     })()}
                                 </div>
+
+                                {/* Affiliate disclosure */}
+                                <p style={{ flexShrink: 0, margin: 0, textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', opacity: 0.6 }}>
+                                    As an Amazon Associate I earn from qualifying purchases.
+                                </p>
 
                                 {/* Pagination — pinned below the scroll area */}
                                 {!volumesLoading && !volumesError && volumes.length > 0 && (() => {

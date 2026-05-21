@@ -6,7 +6,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getAuth } from '@clerk/nextjs/server';
 import dbConnect from '../../../../lib/dbConnect';
 import Manga from '../../../../lib/api/Manga';
-import { searchMangaDex, getMangaDexById, extractMeta } from '../../../../lib/mangadex';
+import { searchMangaDex, getMangaDexById, getMangaDexAggregate, extractMeta } from '../../../../lib/mangadex';
+import { getAniListVolumeCount } from '../../../../lib/anilist';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).end();
@@ -94,14 +95,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // --- Resolve volume count ---
-  // We enumerate 1..N rather than using the aggregate endpoint.
-  // The aggregate only reflects chapters currently on MangaDex, so DMCA takedowns
-  // (e.g. Monster, One Piece vols 8-60) would produce gaps or empty results.
-  // lastVolume/volumes from the MangaDex detail record is the correct source of truth.
+  // Priority 1: stored volumeCount (set when manga was added, fast DB read).
+  // Priority 2: live getMangaDexById — for manga where lastVolume wasn't stored yet.
+  // Priority 3: aggregate max — last resort for ongoing series where lastVolume is null
+  //             but chapters exist. We still enumerate 1..N from the max, so DMCA gaps
+  //             (e.g. One Piece vols 8-60) don't appear as missing.
   let volumeMax = manga.volumeCount || 0;
 
   if (volumeMax === 0) {
-    // volumeCount not stored yet — fetch it live from MangaDex detail.
     try {
       const detail = await getMangaDexById(mangaDexId);
       const meta = extractMeta(detail.data);
@@ -112,6 +113,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } catch (err: any) {
       console.warn('[VolumeTracker]', { event: 'volumecount_fetch_failed', mangaDexId, error: err.message });
+    }
+  }
+
+  if (volumeMax === 0) {
+    try {
+      const aggregate = await getMangaDexAggregate(mangaDexId);
+      const keys = Object.keys(aggregate.volumes || {}).filter(k => k !== 'none' && !isNaN(parseFloat(k)));
+      if (keys.length > 0) {
+        volumeMax = Math.max(...keys.map(k => parseFloat(k)));
+        console.log('[VolumeTracker]', { event: 'volumecount_from_aggregate', mangaDexId, volumeMax });
+      }
+    } catch (err: any) {
+      console.warn('[VolumeTracker]', { event: 'aggregate_fallback_failed', mangaDexId, error: err.message });
+    }
+  }
+
+  if (volumeMax === 0) {
+    const count = await getAniListVolumeCount(mangaTitle);
+    if (count) {
+      volumeMax = count;
+      await Manga.findByIdAndUpdate(mangaDocId, { $set: { volumeCount: count } });
+      console.log('[VolumeTracker]', { event: 'volumecount_from_anilist', mangaDexId, title: mangaTitle, volumeMax });
     }
   }
 
