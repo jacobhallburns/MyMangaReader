@@ -114,7 +114,7 @@ export default async function handler(req, res) {
             selectedGenre: targetGenres.join(', '),
             availableGenres: Object.keys(tagMap).sort(),
             basedOnTaste: formatManga(recommendations),
-            trending: formatManga(trendingResult.data || []),
+            trending: formatManga((trendingResult.data || []).filter(item => !myMangaDexIds.has(item.id))),
         });
 
     } catch (apiErr) {
