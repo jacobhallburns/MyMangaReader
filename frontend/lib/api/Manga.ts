@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 
 const MangaSchema = new mongoose.Schema({
-  kitsuId: { type: String, required: true, unique: true },
-  mangaDexId: { type: String, sparse: true }, // populated when series is synced from MangaDex
+  kitsuId: { type: String, unique: true, sparse: true }, // optional — null for MangaDex-sourced entries
+  mangaDexId: { type: String, unique: true, sparse: true }, // primary key for MangaDex-sourced entries
   title: { type: String, required: true },
   altTitles: { type: [String], default: [] }, // romaji, native, English variants from MangaDex altTitles
   slug: String,

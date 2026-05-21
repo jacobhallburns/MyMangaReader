@@ -116,10 +116,15 @@ export default function MangaList() {
     };
 
     const loadVolumes = async (entry) => {
-        const kitsuId = entry.mangaId?.kitsuId;
-        if (!kitsuId) {
-            setVolumesError('No Kitsu ID on this manga entry.');
+        const mangaDocId = entry.mangaId?._id;
+        if (!mangaDocId) {
+            setVolumesError('Manga document ID missing.');
             return;
+        }
+        const title = entry.mangaId?.title || '(unknown)';
+        console.log('[VolumePopup]', { event: 'open', title, mangaDocId, mangaDexId: entry.mangaId?.mangaDexId ?? null, volumeCount: entry.mangaId?.volumeCount ?? null });
+        if (!entry.mangaId?.volumeCount) {
+            console.warn('[VolumePopup] volumeCount is null or 0 for', title, entry.mangaId);
         }
         setVolumesLoading(true);
         setVolumesError(null);
@@ -130,17 +135,22 @@ export default function MangaList() {
         setVolumePage(1);
         setPendingAdvancePage(null);
         try {
-            const res = await fetch(`/api/manga/volumes/${kitsuId}`);
+            const res = await fetch(`/api/manga/volumes/${mangaDocId}`);
             const data = await res.json();
+            console.log('[VolumePopup]', { event: 'volumes_response', title, ok: res.ok, count: data.volumes?.length ?? 0, warning: data._warning ?? null });
             if (!res.ok) {
                 setVolumesError(data?.error || `API error ${res.status}`);
                 return;
             }
-            setVolumes(data.volumes || []);
+            if (data._warning) console.warn('[VolumePopup]', { event: 'warning', title, warning: data._warning });
+            const vols = data.volumes || [];
+            console.log('[VolumePopup]', { event: 'rows_generated', title, rowCount: vols.length });
+            setVolumes(vols);
             setNextCursor(data.nextCursor ?? null);
             setSerialization(data.serialization ?? null);
             setMangaTitle(data.mangaTitle || '');
         } catch (err) {
+            console.error('[VolumePopup]', { event: 'fetch_error', title, error: err.message });
             setVolumesError(err.message || 'Network error');
         } finally {
             setVolumesLoading(false);
@@ -152,12 +162,11 @@ export default function MangaList() {
         if (!mangaObjId) return;
         try {
             const res = await fetch(`/api/manga/volume-tracker/${mangaObjId}`);
-            if (res.ok) {
-                const data = await res.json();
-                setVolumeStates(data.volumes || {});
-            }
+            const data = await res.json();
+            console.log('[VolumePopup]', { event: 'state_loaded', mangaObjId, volumeStateCount: Object.keys(data.volumes || {}).length });
+            if (res.ok) setVolumeStates(data.volumes || {});
         } catch (err) {
-            console.error('[loadVolumeStates]', err);
+            console.error('[VolumePopup]', { event: 'state_load_error', mangaObjId, error: err.message });
         }
     };
 
@@ -383,7 +392,7 @@ export default function MangaList() {
                         >
                             <div
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ width: '92%', maxWidth: '680px', maxHeight: '88vh', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}
+                                style={{ width: '92%', maxWidth: '900px', minHeight: '500px', maxHeight: '85vh', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '1.1rem', overflowY: 'hidden' }}
                             >
                                 {/* Series header */}
                                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
@@ -441,141 +450,91 @@ export default function MangaList() {
                                     );
                                 })()}
 
-                                {/* Volume list */}
-                                {volumesLoading && (
-                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>Loading volumes...</p>
-                                )}
+                                {/* Scrollable volume list — only this area scrolls */}
+                                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', gap: '0.38rem' }}>
+                                    {volumesLoading && (
+                                        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>Loading volumes...</p>
+                                    )}
 
-                                {volumesError && !volumesLoading && (
-                                    <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                                        <p style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '0 0 1rem 0', fontFamily: 'monospace' }}>{volumesError}</p>
-                                        <button onClick={() => loadVolumes(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Retry</button>
-                                    </div>
-                                )}
+                                    {volumesError && !volumesLoading && (
+                                        <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                                            <p style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '0 0 1rem 0', fontFamily: 'monospace' }}>{volumesError}</p>
+                                            <button onClick={() => loadVolumes(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Retry</button>
+                                        </div>
+                                    )}
 
-                                {!volumesLoading && !volumesError && volumes.length === 0 && (
-                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No volumes available for this manga.</p>
-                                )}
+                                    {!volumesLoading && !volumesError && volumes.length === 0 && (
+                                        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No volumes available for this manga.</p>
+                                    )}
 
+                                    {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
+                                        const visibleVolumes = volumes.slice((volumePage - 1) * VOLUMES_PER_PAGE, volumePage * VOLUMES_PER_PAGE);
+                                        const affiliateTag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG || 'MYMANGA-20';
+                                        const seriesTitle = mangaTitle || detailManga.mangaId?.title || '';
+                                        return visibleVolumes.map((vol) => {
+                                            const key = String(vol.volumeNumber);
+                                            const state = volumeStates[key] || { read: false, online: false, physical: false };
+                                            const isRead = !!state.read;
+                                            const amazonHref = `https://www.amazon.com/s?k=${encodeURIComponent(`${seriesTitle} Volume ${vol.volumeNumber}`)}&tag=${affiliateTag}`;
+                                            return (
+                                                <div
+                                                    key={vol.volumeNumber}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.5rem 0.75rem', background: 'var(--bg-color)', borderRadius: '10px', flexWrap: 'wrap', flexShrink: 0 }}
+                                                >
+                                                    <span style={{ width: '5.5rem', fontWeight: '700', color: 'var(--text-main)', fontSize: '0.85rem', flexShrink: 0 }}>
+                                                        Volume {vol.volumeNumber}
+                                                    </span>
+
+                                                    <button
+                                                        onClick={() => handleVolumeToggle(vol.volumeNumber, 'read', !isRead)}
+                                                        style={{ padding: '0.26rem 0.72rem', borderRadius: '20px', border: `1px solid ${isRead ? 'var(--accent-green)' : 'var(--border-color)'}`, background: isRead ? 'rgba(0,204,102,0.12)' : 'transparent', color: isRead ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: '700', fontSize: '0.74rem', cursor: 'pointer', minWidth: '56px', boxShadow: isRead ? '0 0 5px rgba(0,204,102,0.28)' : 'none', transition: 'all 0.15s ease', flexShrink: 0 }}
+                                                    >
+                                                        {isRead ? 'Read' : 'Unread'}
+                                                    </button>
+
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                                        <input type="checkbox" checked={!!state.online} onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'online', e.target.checked)} style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }} />
+                                                        Online Copy
+                                                    </label>
+
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                                        <input type="checkbox" checked={!!state.physical} onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'physical', e.target.checked)} style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }} />
+                                                        Physical Copy
+                                                    </label>
+
+                                                    <a href={amazonHref} target="_blank" rel="noopener noreferrer sponsored" onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', padding: '0.26rem 0.72rem', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.74rem', fontWeight: '600', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                                        Buy on Amazon
+                                                    </a>
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+
+                                {/* Pagination — pinned below the scroll area */}
                                 {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
                                     const totalKnownPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
-                                    const visibleVolumes = volumes.slice((volumePage - 1) * VOLUMES_PER_PAGE, volumePage * VOLUMES_PER_PAGE);
                                     const canGoNext = volumePage < totalKnownPages || !!nextCursor;
                                     const canGoPrev = volumePage > 1;
                                     const pageNums = getPageNumbers(volumePage, totalKnownPages);
                                     const btnBase = { border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', minWidth: '34px', textAlign: 'center' };
-                                    const affiliateTag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG || 'MYMANGA-20';
-                                    const seriesTitle = mangaTitle || detailManga.mangaId?.title || '';
-
+                                    if (totalKnownPages <= 1 && !nextCursor) return null;
                                     return (
-                                        <>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.38rem' }}>
-                                                {visibleVolumes.map((vol) => {
-                                                    const key = String(vol.volumeNumber);
-                                                    const state = volumeStates[key] || { read: false, online: false, physical: false };
-                                                    const isRead = !!state.read;
-                                                    const amazonHref = `https://www.amazon.com/s?k=${encodeURIComponent(`${seriesTitle} Volume ${vol.volumeNumber}`)}&tag=${affiliateTag}`;
-                                                    return (
-                                                        <div
-                                                            key={vol.volumeNumber}
-                                                            style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.5rem 0.75rem', background: 'var(--bg-color)', borderRadius: '10px', flexWrap: 'wrap' }}
-                                                        >
-                                                            <span style={{ width: '5.5rem', fontWeight: '700', color: 'var(--text-main)', fontSize: '0.85rem', flexShrink: 0 }}>
-                                                                Volume {vol.volumeNumber}
-                                                            </span>
+                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flexShrink: 0 }}>
+                                            <button onClick={() => goToVolumePage(volumePage - 1)} disabled={!canGoPrev || loadMoreLoading} style={{ ...btnBase, background: canGoPrev ? 'var(--bg-color)' : 'transparent', color: canGoPrev ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoPrev ? 1 : 0.35, cursor: canGoPrev ? 'pointer' : 'default' }}>←</button>
 
-                                                            {/* Read / Unread toggle */}
-                                                            <button
-                                                                onClick={() => handleVolumeToggle(vol.volumeNumber, 'read', !isRead)}
-                                                                style={{
-                                                                    padding: '0.26rem 0.72rem',
-                                                                    borderRadius: '20px',
-                                                                    border: `1px solid ${isRead ? 'var(--accent-green)' : 'var(--border-color)'}`,
-                                                                    background: isRead ? 'rgba(0,204,102,0.12)' : 'transparent',
-                                                                    color: isRead ? 'var(--accent-green)' : 'var(--text-muted)',
-                                                                    fontWeight: '700',
-                                                                    fontSize: '0.74rem',
-                                                                    cursor: 'pointer',
-                                                                    minWidth: '56px',
-                                                                    boxShadow: isRead ? '0 0 5px rgba(0,204,102,0.28)' : 'none',
-                                                                    transition: 'all 0.15s ease',
-                                                                    flexShrink: 0,
-                                                                }}
-                                                            >
-                                                                {isRead ? 'Read' : 'Unread'}
-                                                            </button>
-
-                                                            {/* Online Copy */}
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={!!state.online}
-                                                                    onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'online', e.target.checked)}
-                                                                    style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }}
-                                                                />
-                                                                Online Copy
-                                                            </label>
-
-                                                            {/* Physical Copy */}
-                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={!!state.physical}
-                                                                    onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'physical', e.target.checked)}
-                                                                    style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }}
-                                                                />
-                                                                Physical Copy
-                                                            </label>
-
-                                                            {/* Buy on Amazon */}
-                                                            <a
-                                                                href={amazonHref}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer sponsored"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                style={{ marginLeft: 'auto', padding: '0.26rem 0.72rem', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.74rem', fontWeight: '600', flexShrink: 0, whiteSpace: 'nowrap' }}
-                                                            >
-                                                                Buy on Amazon
-                                                            </a>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {/* Pagination */}
-                                            {(totalKnownPages > 1 || nextCursor) && (
-                                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                                    <button
-                                                        onClick={() => goToVolumePage(volumePage - 1)}
-                                                        disabled={!canGoPrev || loadMoreLoading}
-                                                        style={{ ...btnBase, background: canGoPrev ? 'var(--bg-color)' : 'transparent', color: canGoPrev ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoPrev ? 1 : 0.35, cursor: canGoPrev ? 'pointer' : 'default' }}
-                                                    >←</button>
-
-                                                    {pageNums.map((p, i) =>
-                                                        p === '...' ? (
-                                                            <span key={`e${i}`} style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>
-                                                        ) : (
-                                                            <button
-                                                                key={p}
-                                                                onClick={() => goToVolumePage(p)}
-                                                                disabled={loadMoreLoading}
-                                                                style={{ ...btnBase, background: p === volumePage ? 'var(--text-main)' : 'var(--bg-color)', color: p === volumePage ? 'var(--bg-color)' : 'var(--text-main)', borderColor: p === volumePage ? 'var(--text-main)' : 'var(--border-color)' }}
-                                                            >{p}</button>
-                                                        )
-                                                    )}
-
-                                                    {nextCursor && (
-                                                        <span style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>
-                                                    )}
-
-                                                    <button
-                                                        onClick={() => goToVolumePage(volumePage + 1)}
-                                                        disabled={!canGoNext || loadMoreLoading}
-                                                        style={{ ...btnBase, background: canGoNext ? 'var(--bg-color)' : 'transparent', color: canGoNext ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoNext && !loadMoreLoading ? 1 : 0.35, cursor: canGoNext && !loadMoreLoading ? 'pointer' : 'default' }}
-                                                    >{loadMoreLoading && pendingAdvancePage ? '…' : '→'}</button>
-                                                </div>
+                                            {pageNums.map((p, i) =>
+                                                p === '...' ? (
+                                                    <span key={`e${i}`} style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>
+                                                ) : (
+                                                    <button key={p} onClick={() => goToVolumePage(p)} disabled={loadMoreLoading} style={{ ...btnBase, background: p === volumePage ? 'var(--text-main)' : 'var(--bg-color)', color: p === volumePage ? 'var(--bg-color)' : 'var(--text-main)', borderColor: p === volumePage ? 'var(--text-main)' : 'var(--border-color)' }}>{p}</button>
+                                                )
                                             )}
-                                        </>
+
+                                            {nextCursor && <span style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>}
+
+                                            <button onClick={() => goToVolumePage(volumePage + 1)} disabled={!canGoNext || loadMoreLoading} style={{ ...btnBase, background: canGoNext ? 'var(--bg-color)' : 'transparent', color: canGoNext ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoNext && !loadMoreLoading ? 1 : 0.35, cursor: canGoNext && !loadMoreLoading ? 'pointer' : 'default' }}>{loadMoreLoading && pendingAdvancePage ? '…' : '→'}</button>
+                                        </div>
                                     );
                                 })()}
                             </div>

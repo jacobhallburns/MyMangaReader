@@ -1,10 +1,10 @@
 // MangaDex API utility — rate limit: 90 req/min (1 per ~667ms)
-// Do NOT call this in real-time for every page load; use it for seeding/batch jobs.
-// Cover images: store only the CDN URL string, never download or re-host the bytes.
+// All server-side only. Do NOT import this in browser-executed code.
+// Cover images: store only the CDN URL string — never download or re-host bytes.
 
 const BASE = 'https://api.mangadex.org';
 const COVERS_BASE = 'https://uploads.mangadex.org/covers';
-const MIN_INTERVAL_MS = 720; // slightly above 667ms to stay safely under the limit
+const MIN_INTERVAL_MS = 720; // safely above the 667ms floor for 90 req/min
 
 let lastRequestAt = 0;
 
@@ -12,6 +12,7 @@ async function throttledFetch(url: string, options?: RequestInit): Promise<Respo
   const gap = MIN_INTERVAL_MS - (Date.now() - lastRequestAt);
   if (gap > 0) await new Promise<void>(r => setTimeout(r, gap));
   lastRequestAt = Date.now();
+  console.log('[MangaDex]', { event: 'request', url });
   return fetch(url, { ...options, headers: { 'User-Agent': 'MyMangaReader/1.0', ...options?.headers } });
 }
 
@@ -19,31 +20,43 @@ async function fetchWithBackoff(url: string, options?: RequestInit, retries = 3)
   const res = await throttledFetch(url, options);
   if (res.status === 429 && retries > 0) {
     const wait = Math.max(2, Number(res.headers.get('Retry-After') || 2)) * 1000;
+    console.warn('[MangaDex]', { event: 'rate_limited', url, retriesLeft: retries - 1, waitMs: wait });
     await new Promise<void>(r => setTimeout(r, wait));
     return fetchWithBackoff(url, options, retries - 1);
+  }
+  if (!res.ok) {
+    console.error('[MangaDex]', { event: 'error', url, status: res.status });
   }
   return res;
 }
 
-export async function searchMangaDex(query: string, limit = 10) {
-  const params = new URLSearchParams({
-    title: query,
-    limit: String(limit),
-    'includes[]': 'cover_art',
-  });
-  // URLSearchParams doesn't handle repeated keys well, append manually
-  params.append('includes[]', 'author');
-  const res = await fetchWithBackoff(`${BASE}/manga?${params}`);
-  if (!res.ok) throw new Error(`MangaDex search ${res.status}`);
-  return res.json() as Promise<{ data: any[] }>;
+export async function searchMangaDex(query: string, limit = 20) {
+  const url = `${BASE}/manga?title=${encodeURIComponent(query)}&limit=${limit}&includes[]=cover_art&includes[]=author`;
+  const res = await fetchWithBackoff(url);
+  if (!res.ok) throw new Error(`MangaDex search failed: ${res.status}`);
+  const json = await res.json() as { data: any[] };
+  console.log('[MangaDex]', { event: 'search_result', query, count: json.data?.length ?? 0 });
+  return json;
 }
 
 export async function getMangaDexById(mangaDexId: string) {
-  const params = new URLSearchParams();
-  ['cover_art', 'author', 'artist'].forEach(r => params.append('includes[]', r));
-  const res = await fetchWithBackoff(`${BASE}/manga/${mangaDexId}?${params}`);
-  if (!res.ok) throw new Error(`MangaDex fetch ${res.status}`);
-  return res.json() as Promise<{ data: any }>;
+  const url = `${BASE}/manga/${mangaDexId}?includes[]=cover_art&includes[]=author&includes[]=artist`;
+  const res = await fetchWithBackoff(url);
+  if (!res.ok) throw new Error(`MangaDex fetch failed: ${res.status}`);
+  const json = await res.json() as { data: any };
+  return json;
+}
+
+// Returns the published volume structure: { volumes: { "1": { volume, count, chapters }, ... } }
+// Handles ongoing series correctly — returns actual published volumes, not a declared count.
+export async function getMangaDexAggregate(mangaDexId: string) {
+  const url = `${BASE}/manga/${mangaDexId}/aggregate?translatedLanguage[]=en`;
+  const res = await fetchWithBackoff(url);
+  if (!res.ok) throw new Error(`MangaDex aggregate failed: ${res.status}`);
+  const json = await res.json() as { volumes: Record<string, any> };
+  const volumeKeys = Object.keys(json.volumes || {}).filter(k => k !== 'none');
+  console.log('[MangaDex]', { event: 'aggregate_result', mangaDexId, volumeCount: volumeKeys.length });
+  return json;
 }
 
 export function getCoverUrl(mangaDexId: string, fileName: string, width: 256 | 512 | null = 512): string {
@@ -82,14 +95,19 @@ export function extractMeta(mangaData: any): MangaDexMeta {
     (Object.values(attr.description ?? {}) as string[])[0] ??
     '';
 
-  // MangaDex tag groups: "genre" and "theme" are the relevant content tags
   const genres: string[] = (attr.tags ?? [])
     .filter((t: any) => t.attributes?.group === 'genre' || t.attributes?.group === 'theme')
     .map((t: any) => t.attributes?.name?.en)
     .filter(Boolean);
 
   const status: string | undefined = attr.status;
-  const volumeCount: number | undefined = attr.lastVolume ? parseInt(attr.lastVolume) || undefined : undefined;
+
+  // attributes.volumes is the declared count (null for ongoing); attributes.lastVolume is the highest published
+  const rawVolumes = attr.volumes ? parseInt(attr.volumes) : undefined;
+  const rawLastVolume = attr.lastVolume ? parseInt(attr.lastVolume) : undefined;
+  const volumeCount: number | undefined =
+    (!isNaN(rawVolumes as number) ? rawVolumes : undefined) ??
+    (!isNaN(rawLastVolume as number) ? rawLastVolume : undefined);
 
   const coverRel = rels.find(r => r.type === 'cover_art');
   const coverFileName: string | undefined = coverRel?.attributes?.fileName;
