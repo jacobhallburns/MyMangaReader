@@ -43,3 +43,9 @@ body {
         justify-content: center;
     }
 }
+
+@keyframes gemGlow {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.7)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 20px rgba(167, 139, 250, 1)) drop-shadow(0 0 35px rgba(139, 92, 246, 0.5)); transform: scale(1.06); }
+}
+.gem-glow { animation: gemGlow 2.5s ease-in-out infinite; }

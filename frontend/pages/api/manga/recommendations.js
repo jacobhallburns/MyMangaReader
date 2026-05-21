@@ -2,7 +2,7 @@ import dbConnect from '../../../lib/dbConnect';
 import UserManga from '../../../lib/api/UserManga';
 import Manga from '../../../lib/api/Manga';
 import { getAuth } from '@clerk/nextjs/server';
-import { extractMeta, getCoverUrl, getMangaDexTags, getMangaDexByTag, getTrendingMangaDex } from '../../../lib/mangadex';
+import { extractMeta, getCoverUrl, getMangaDexTags, getMangaDexByTag, getTrendingMangaDex, getRandomMangaDex } from '../../../lib/mangadex';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
     const { userId } = getAuth(req);
     let myMangaDexIds = new Set();
-    let myRatingsMap = new Map(); // mangaDexId -> user's rating
+    let myRatingsMap = new Map();
     let genreScores = {};
 
     try {
@@ -25,7 +25,11 @@ export default async function handler(req, res) {
                 if (!globalData?.mangaDexId) return;
                 if (entry.rating > 0) myRatingsMap.set(globalData.mangaDexId, entry.rating);
                 if (!globalData?.genres) return;
-                const weight = (Number(entry.rating || 0) ** 2) + (entry.status === 'reading' ? 5 : 2);
+                // Positive weight for liked genres, slight penalty for disliked
+                const rating = Number(entry.rating || 0);
+                const activityBase = entry.status === 'reading' ? 5 : 2;
+                const ratingContrib = rating === 0 ? 0 : (rating - 5) * 2; // -8 to +10, neutral at 5
+                const weight = activityBase + ratingContrib;
                 globalData.genres.forEach(g => {
                     const key = g.charAt(0).toUpperCase() + g.slice(1).toLowerCase();
                     genreScores[key] = (genreScores[key] || 0) + weight;
@@ -55,7 +59,7 @@ export default async function handler(req, res) {
             const tagId = tagMap[tg];
             if (!tagId) { recResults.push({ data: [] }); continue; }
             try {
-                recResults.push(await getMangaDexByTag(tagId, 15));
+                recResults.push(await getMangaDexByTag(tagId, 20));
             } catch {
                 recResults.push({ data: [] });
             }
@@ -63,9 +67,16 @@ export default async function handler(req, res) {
 
         let trendingResult = { data: [] };
         try {
-            trendingResult = await getTrendingMangaDex(15);
+            trendingResult = await getTrendingMangaDex(30);
         } catch (err) {
             console.error('[Recommendations] Trending failed:', err.message);
+        }
+
+        let randomResult = { data: [] };
+        try {
+            randomResult = await getRandomMangaDex(20);
+        } catch (err) {
+            console.error('[Recommendations] Random pool failed:', err.message);
         }
 
         const isDoujinshi = (item) =>
@@ -73,13 +84,28 @@ export default async function handler(req, res) {
                 t => t.attributes?.group === 'format' && t.attributes?.name?.en === 'Doujinshi'
             );
 
-        const recommendations = recResults.flatMap(r => r.data || [])
+        // Build candidate pool — filter first, then add slight session variance before capping
+        let candidates = recResults.flatMap(r => r.data || [])
             .filter((item, idx, self) => item && !isDoujinshi(item) && idx === self.findIndex(t => t.id === item.id))
-            .filter(item => !myMangaDexIds.has(item.id))
-            .slice(0, 15);
+            .filter(item => !myMangaDexIds.has(item.id));
 
-        // Bulk-fetch stored ratings for all items we're about to return
-        const allItems = [...recommendations, ...(trendingResult.data || [])];
+        // Small shuffle so recommendations vary slightly between sessions
+        for (let i = candidates.length - 1; i > 0; i--) {
+            if (Math.random() < 0.3) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+            }
+        }
+
+        const recommendations = candidates.slice(0, 50);
+
+        // Random pool for the randomizer card (excludes genre recommendations)
+        const recIds = new Set(recommendations.map(m => m.id));
+        const randomPool = (randomResult.data || [])
+            .filter(item => item && !isDoujinshi(item) && !myMangaDexIds.has(item.id) && !recIds.has(item.id));
+
+        // Bulk-fetch stored ratings for all items
+        const allItems = [...recommendations, ...(trendingResult.data || []), ...randomPool];
         const mangaDexIds = [...new Set(allItems.map(item => item.id).filter(Boolean))];
         const mangaRecords = await Manga.find(
             { mangaDexId: { $in: mangaDexIds } },
@@ -99,6 +125,7 @@ export default async function handler(req, res) {
                 return {
                     mangaDexId: item.id,
                     title: meta.title,
+                    altTitles: meta.altTitles,
                     posterImage,
                     synopsis: meta.synopsis,
                     author: meta.author,
@@ -115,6 +142,7 @@ export default async function handler(req, res) {
             availableGenres: Object.keys(tagMap).sort(),
             basedOnTaste: formatManga(recommendations),
             trending: formatManga((trendingResult.data || []).filter(item => !myMangaDexIds.has(item.id))),
+            randomPool: formatManga(randomPool),
         });
 
     } catch (apiErr) {

@@ -110,6 +110,14 @@ export async function getTrendingMangaDex(limit = 15): Promise<{ data: any[] }> 
   return res.json() as Promise<{ data: any[] }>;
 }
 
+export async function getRandomMangaDex(limit = 20): Promise<{ data: any[] }> {
+  const offset = Math.floor(Math.random() * 3000);
+  const url = `${BASE}/manga?order[rating]=desc&limit=${limit}&offset=${offset}&includes[]=cover_art&includes[]=author&contentRating[]=safe`;
+  const res = await fetchWithBackoff(url);
+  if (!res.ok) return { data: [] };
+  return res.json() as Promise<{ data: any[] }>;
+}
+
 export function extractMeta(mangaData: any): MangaDexMeta {
   const attr = mangaData.attributes ?? {};
   const rels: any[] = mangaData.relationships ?? [];

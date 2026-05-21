@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import TitleWithAltNames from '../components/TitleWithAltNames';
 
 const VOLUMES_PER_PAGE = 10;
 const fmtRating = (n) => String(parseFloat(n.toFixed(2)));
@@ -324,7 +325,7 @@ export default function MangaList() {
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.2rem 0' }}>
                                 <div>
                                     <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.6rem 0', fontWeight: '800' }}>
-                                        {entry.mangaId?.title || entry.title}
+                                        <TitleWithAltNames title={entry.mangaId?.title || entry.title} altTitles={entry.mangaId?.altTitles ?? []} />
                                     </h2>
                                     <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 0.75rem 0' }}>
                                         {entry.mangaId?.synopsis?.slice(0, 200) || entry.synopsis?.slice(0, 200)}...

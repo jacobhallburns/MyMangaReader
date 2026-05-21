@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useClerk } from '@clerk/nextjs';
+import TitleWithAltNames from '../components/TitleWithAltNames';
 
 const fmtRating = (n) => String(parseFloat(n.toFixed(2)));
 
@@ -216,7 +217,7 @@ export default function MangaSearch() {
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                                     <div>
                                         <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.25rem 0', fontWeight: '800' }}>
-                                            {entry?.mangaId?.title || m.title || 'Unknown Title'}
+                                            <TitleWithAltNames title={entry?.mangaId?.title || m.title || 'Unknown Title'} altTitles={m.altTitles ?? []} />
                                         </h2>
                                         {m.author && (
                                             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0 0 0.5rem 0' }}>by {m.author}</p>
