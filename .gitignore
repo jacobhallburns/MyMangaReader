@@ -31,3 +31,6 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Generated affiliate link catalogs
+AffiliateLinks/
