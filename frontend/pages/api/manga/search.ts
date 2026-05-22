@@ -27,23 +27,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { data } = await searchMangaDex(q, 20);
 
-    const isDoujinshi = (manga: any) =>
-      (manga.attributes?.tags ?? []).some(
-        (t: any) => t.attributes?.group === 'format' && t.attributes?.name?.en === 'Doujinshi'
-      );
-
-    const filtered = (data || []).filter((manga: any) => !isDoujinshi(manga));
-
     // Bulk-fetch any stored ratings for these results
     await dbConnect();
-    const mangaDexIds = filtered.map((m: any) => m.id);
+    const mangaDexIds = (data || []).map((m: any) => m.id);
     const mangaRecords = await Manga.find(
       { mangaDexId: { $in: mangaDexIds } },
       'mangaDexId averageRating ratingCount'
     ).lean() as any[];
     const ratingMap = new Map(mangaRecords.map((m: any) => [m.mangaDexId, m]));
 
-    const results: SearchResult[] = filtered.map((manga: any) => {
+    const results: SearchResult[] = (data || []).map((manga: any) => {
       const meta = extractMeta(manga);
       const coverRel = (manga.relationships || []).find((r: any) => r.type === 'cover_art');
       const coverUrl = coverRel?.attributes?.fileName

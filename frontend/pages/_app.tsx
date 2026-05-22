@@ -47,7 +47,6 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
         }
     }
   }, [mounted, isLoaded, isSignedIn, setIsDark]);
-  // cleanup: removed unused addMangaToList helper (never wired to any child component)
 
   if (!mounted) return null;
 
