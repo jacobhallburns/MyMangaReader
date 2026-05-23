@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
 
 const MangaSchema = new mongoose.Schema({
-  kitsuId: { type: String }, // deprecated — kept for backward compat with old entries; unique index removed
-  mangaDexId: { type: String, unique: true, sparse: true }, // primary key for MangaDex-sourced entries
+  anilistId: { type: Number, unique: true, sparse: true }, // primary key for AniList-sourced entries
+  kitsuId: { type: String }, // deprecated — kept for backward compat with old entries
+  mangaDexId: { type: String }, // deprecated — kept for backward compat with old entries
   title: { type: String, required: true },
   altTitles: { type: [String], default: [] }, // romaji, native, English variants from MangaDex altTitles
   slug: String,

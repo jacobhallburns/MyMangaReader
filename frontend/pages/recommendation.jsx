@@ -37,7 +37,7 @@ const AddModal = ({ manga, onClose, onAdded }) => {
                 body: JSON.stringify({ mangaDexData: manga._raw, status: tempStatus, rating: tempRating, notes: tempNotes })
             });
             if (res.ok) {
-                onAdded(manga.mangaDexId);
+                onAdded(manga.anilistId);
                 onClose();
             } else {
                 const body = await res.json().catch(() => ({}));
@@ -96,7 +96,7 @@ const AddModal = ({ manga, onClose, onAdded }) => {
 const CardContent = ({ manga, isAlreadyAdded, userRating, onAddClick }) => (
     <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <h2 style={{ color: 'var(--text-main)', fontSize: '1rem', margin: '0 0 0.2rem 0', fontWeight: '800', lineHeight: '1.3' }}>
-            <TitleWithAltNames title={manga.title} altTitles={manga.altTitles ?? []} />
+            <TitleWithAltNames title={manga.title} altTitles={manga.altTitles ?? []} mediaRaw={manga._raw ?? null} />
         </h2>
         {manga.author && (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 0.6rem 0' }}>by {manga.author}</p>
@@ -146,7 +146,7 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded, userRating }) => {
     );
 };
 
-const RandomizerCard = ({ manga, onAdded, isAlreadyAdded, userRating, onSpin }) => {
+const RandomizerCard = ({ manga, onAdded, isAlreadyAdded, userRating, onSpin, spinning = false }) => {
     const { isSignedIn } = useUser();
     const { redirectToSignIn } = useClerk();
     const [showModal, setShowModal] = useState(false);
@@ -168,9 +168,9 @@ const RandomizerCard = ({ manga, onAdded, isAlreadyAdded, userRating, onSpin }) 
             {/* Gem header */}
             <div style={{ background: 'linear-gradient(180deg, #120d00 0%, #1c1500 100%)', padding: '0.7rem 1rem 0.65rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem', borderBottom: '1px solid #3a2900', flexShrink: 0 }}>
                 <button
-                    onClick={onSpin}
-                    title="Fortune's Pick — click to randomize"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0 }}
+                    onClick={spinning ? undefined : onSpin}
+                    title={spinning ? 'Finding something new...' : "Fortune's Pick — click to randomize"}
+                    style={{ background: 'none', border: 'none', cursor: spinning ? 'wait' : 'pointer', padding: 0, lineHeight: 0 }}
                 >
                     <div
                         className="gem-glow"
@@ -179,11 +179,13 @@ const RandomizerCard = ({ manga, onAdded, isAlreadyAdded, userRating, onSpin }) 
                             height: '38px',
                             background: 'linear-gradient(160deg, #c4b5fd 0%, #7c3aed 45%, #4c1d95 100%)',
                             clipPath: 'polygon(50% 0%, 100% 30%, 85% 100%, 15% 100%, 0% 30%)',
+                            opacity: spinning ? 0.45 : 1,
+                            transition: 'opacity 0.2s',
                         }}
                     />
                 </button>
                 <span style={{ color: '#D4AF37', fontSize: '0.6rem', fontWeight: '800', letterSpacing: '0.14em', opacity: 0.9 }}>
-                    FORTUNE'S PICK
+                    {spinning ? 'SEARCHING...' : "FORTUNE'S PICK"}
                 </span>
             </div>
 
@@ -225,6 +227,7 @@ export default function Recommendations() {
     const [recVisible, setRecVisible] = useState(14); // regular rec cards (randomizer occupies slot 0)
     const [trendVisible, setTrendVisible] = useState(15);
     const [randomizerItem, setRandomizerItem] = useState(null);
+    const [spinLoading, setSpinLoading] = useState(false);
 
     useEffect(() => {
         if (!isLoaded) return;
@@ -234,7 +237,7 @@ export default function Recommendations() {
                 .then(list => {
                     if (!Array.isArray(list)) return;
                     const ids = new Set();
-                    list.forEach(entry => { const mdId = entry.mangaId?.mangaDexId; if (mdId) ids.add(mdId); });
+                    list.forEach(entry => { const aid = entry.mangaId?.anilistId; if (aid) ids.add(aid); });
                     setAddedIds(ids);
                 })
                 .catch(() => {});
@@ -252,32 +255,49 @@ export default function Recommendations() {
         if (candidate) setRandomizerItem(candidate);
     }, [recs.basedOnTaste, recs.randomPool]);
 
-    const handleMangaAdded = (mangaDexId) => setAddedIds(prev => new Set(prev).add(mangaDexId));
+    const handleMangaAdded = (anilistId) => setAddedIds(prev => new Set(prev).add(anilistId));
 
-    const spinRandomizer = () => {
-        const regularIds = new Set(recs.basedOnTaste.slice(0, recVisible).map(m => m.mangaDexId));
-        const fromPool = recs.basedOnTaste.filter(m => !regularIds.has(m.mangaDexId) && m.mangaDexId !== randomizerItem?.mangaDexId);
-        if (fromPool.length > 0) { setRandomizerItem(fromPool[Math.floor(Math.random() * fromPool.length)]); return; }
-        const allShownIds = new Set([...regularIds, randomizerItem?.mangaDexId].filter(Boolean));
-        const fromRandom = (recs.randomPool || []).filter(m => !allShownIds.has(m.mangaDexId));
-        if (fromRandom.length > 0) setRandomizerItem(fromRandom[Math.floor(Math.random() * fromRandom.length)]);
+    const HISTORY_KEY = 'randomizerHistory';
+    const HISTORY_SIZE = 50;
+
+    const getHistory = () => {
+        try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+    };
+
+    const addToHistory = (anilistId) => {
+        let h = getHistory().filter(id => id !== anilistId);
+        h.push(anilistId);
+        if (h.length > HISTORY_SIZE) h = h.slice(-HISTORY_SIZE);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    };
+
+    const spinRandomizer = async () => {
+        if (spinLoading) return;
+        setSpinLoading(true);
+        const history = getHistory();
+        let result = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const res = await fetch('/api/manga/random');
+                if (!res.ok) break;
+                const data = await res.json();
+                if (!data.manga) break;
+                if (!history.includes(data.manga.anilistId) && data.manga.anilistId !== randomizerItem?.anilistId) {
+                    result = data.manga;
+                    break;
+                }
+                // result was in history — loop to try again
+            } catch { break; }
+        }
+        if (result) {
+            addToHistory(result.anilistId);
+            setRandomizerItem(result);
+        }
+        setSpinLoading(false);
     };
 
     const handleLoadMoreRecs = () => {
-        const newVisible = Math.min(recVisible + 5, recs.basedOnTaste.length);
-        setRecVisible(newVisible);
-        if (randomizerItem) {
-            const newRegularIds = new Set(recs.basedOnTaste.slice(0, newVisible).map(m => m.mangaDexId));
-            if (newRegularIds.has(randomizerItem.mangaDexId)) {
-                const available = recs.basedOnTaste.filter(m => !newRegularIds.has(m.mangaDexId));
-                if (available.length > 0) {
-                    setRandomizerItem(available[Math.floor(Math.random() * available.length)]);
-                } else {
-                    const rpAvail = (recs.randomPool || []).filter(m => !newRegularIds.has(m.mangaDexId));
-                    setRandomizerItem(rpAvail.length > 0 ? rpAvail[Math.floor(Math.random() * rpAvail.length)] : null);
-                }
-            }
-        }
+        setRecVisible(v => Math.min(v + 5, recs.basedOnTaste.length));
     };
 
     const regularRecs = recs.basedOnTaste.slice(0, recVisible);
@@ -300,16 +320,17 @@ export default function Recommendations() {
                         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
                             {randomizerItem && (
                                 <RandomizerCard
-                                    key={`randomizer-${randomizerItem.mangaDexId}`}
+                                    key={`randomizer-${randomizerItem.anilistId}`}
                                     manga={randomizerItem}
                                     onAdded={handleMangaAdded}
-                                    isAlreadyAdded={addedIds.has(randomizerItem.mangaDexId)}
+                                    isAlreadyAdded={addedIds.has(randomizerItem.anilistId)}
                                     userRating={randomizerItem.userRating ?? 0}
                                     onSpin={spinRandomizer}
+                                    spinning={spinLoading}
                                 />
                             )}
                             {regularRecs.map(m => (
-                                <RecCard key={m.mangaDexId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.mangaDexId)} userRating={m.userRating ?? 0} />
+                                <RecCard key={m.anilistId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.anilistId)} userRating={m.userRating ?? 0} />
                             ))}
                         </ul>
                         {hasMoreRecs && <LoadMoreButton onClick={handleLoadMoreRecs} />}
@@ -324,7 +345,7 @@ export default function Recommendations() {
                         <>
                             <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
                                 {recs?.trending?.slice(0, trendVisible).map(m => (
-                                    <RecCard key={m.mangaDexId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.mangaDexId)} userRating={m.userRating ?? 0} />
+                                    <RecCard key={m.anilistId} manga={m} onAdded={handleMangaAdded} isAlreadyAdded={addedIds.has(m.anilistId)} userRating={m.userRating ?? 0} />
                                 ))}
                             </ul>
                             {hasMoreTrend && <LoadMoreButton onClick={() => setTrendVisible(t => t + 5)} />}

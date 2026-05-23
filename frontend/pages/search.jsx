@@ -20,7 +20,7 @@ export default function MangaSearch() {
     const [requestSubmitting, setRequestSubmitting] = useState(false);
     const [requestDone, setRequestDone] = useState(false);
 
-    // Keyed by mangaDexId for MangaDex results
+    // Keyed by anilistId (as string) for AniList results
     const [addedIds, setAddedIds] = useState(new Set());
     const [addedMangaMap, setAddedMangaMap] = useState(new Map());
 
@@ -44,10 +44,8 @@ export default function MangaSearch() {
                     const ids = new Set();
                     const map = new Map();
                     dataList.forEach((entry) => {
-                        const mdId = entry.mangaId?.mangaDexId;
-                        const kId = entry.mangaId?.kitsuId; // legacy fallback
-                        if (mdId) { ids.add(mdId); map.set(mdId, entry); }
-                        if (kId) { ids.add(kId); map.set(kId, entry); }
+                        const aid = entry.mangaId?.anilistId != null ? String(entry.mangaId.anilistId) : null;
+                        if (aid) { ids.add(aid); map.set(aid, entry); }
                     });
                     setAddedIds(ids);
                     setAddedMangaMap(map);
@@ -108,7 +106,7 @@ export default function MangaSearch() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        mangaDexData: editingManga._raw,
+                        anilistData: editingManga._raw,
                         status: tempStatus,
                         rating: tempRating,
                         notes: tempNotes,
@@ -134,7 +132,7 @@ export default function MangaSearch() {
                 });
                 if (res.ok) {
                     const updatedEntry = await res.json();
-                    const mdId = editingManga.mangaId?.mangaDexId || editingManga.mangaId?.kitsuId;
+                    const mdId = editingManga.mangaId?.anilistId != null ? String(editingManga.mangaId.anilistId) : null;
                     if (mdId) setAddedMangaMap((prev) => new Map(prev).set(mdId, updatedEntry));
                     setEditingManga(null);
                 } else {
@@ -217,7 +215,7 @@ export default function MangaSearch() {
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                                     <div>
                                         <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.25rem 0', fontWeight: '800' }}>
-                                            <TitleWithAltNames title={entry?.mangaId?.title || m.title || 'Unknown Title'} altTitles={m.altTitles ?? []} />
+                                            <TitleWithAltNames title={entry?.mangaId?.title || m.title || 'Unknown Title'} altTitles={m.altTitles ?? []} mediaRaw={m._raw} />
                                         </h2>
                                         {m.author && (
                                             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0 0 0.5rem 0' }}>by {m.author}</p>

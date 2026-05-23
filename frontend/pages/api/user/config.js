@@ -13,19 +13,35 @@ export default async function handler(req, res) {
 
         if (req.method === 'GET') {
             const config = await UserConfig.findOne({ userId });
-            return res.status(200).json(config || { theme: 'light' });
+            return res.status(200).json(config || { theme: 'light', titleLanguage: 'en' });
         }
 
         if (req.method === 'POST') {
-            const { theme } = req.body;
-            // Validate that theme is only 'light' or 'dark'
-            if (!['light', 'dark'].includes(theme)) {
-                return res.status(400).json({ error: "Invalid theme" });
+            const { theme, titleLanguage } = req.body;
+            const update = {};
+
+            if (theme !== undefined) {
+                if (!['light', 'dark'].includes(theme)) {
+                    return res.status(400).json({ error: "Invalid theme" });
+                }
+                update.theme = theme;
+            }
+
+            if (titleLanguage !== undefined) {
+                const VALID_LANGS = ['en', 'ja-ro', 'ja', 'ko', 'zh'];
+                if (!VALID_LANGS.includes(titleLanguage)) {
+                    return res.status(400).json({ error: "Invalid titleLanguage" });
+                }
+                update.titleLanguage = titleLanguage;
+            }
+
+            if (Object.keys(update).length === 0) {
+                return res.status(400).json({ error: "No valid fields to update" });
             }
 
             const config = await UserConfig.findOneAndUpdate(
                 { userId },
-                { theme },
+                { $set: update },
                 { upsert: true, new: true }
             );
             return res.status(200).json(config);

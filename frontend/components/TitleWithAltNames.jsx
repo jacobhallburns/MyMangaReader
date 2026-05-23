@@ -1,9 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useLang } from '../lib/LangContext';
+import { extractRawTitlesFromAniList, resolvePrimaryTitle, resolveAltTitles } from '../lib/titleLocale';
 
-export default function TitleWithAltNames({ title, altTitles = [], style = {} }) {
+export default function TitleWithAltNames({ title, altTitles = [], mediaRaw = null, style = {} }) {
+    const { lang } = useLang();
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
-    const unique = [...new Set((altTitles || []).filter(t => t && t !== title))];
+
+    const { displayTitle, displayAlts } = useMemo(() => {
+        if (mediaRaw) {
+            const raw = extractRawTitlesFromAniList(mediaRaw);
+            return {
+                displayTitle: resolvePrimaryTitle(raw, lang) || title,
+                displayAlts: resolveAltTitles(raw, lang),
+            };
+        }
+        return { displayTitle: title, displayAlts: altTitles };
+    }, [mediaRaw, lang, title, altTitles]);
+
+    const unique = [...new Set((displayAlts || []).filter(t => t && t !== displayTitle))];
 
     useEffect(() => {
         if (!open) return;
@@ -17,7 +32,7 @@ export default function TitleWithAltNames({ title, altTitles = [], style = {} })
         };
     }, [open]);
 
-    if (!unique.length) return <span style={style}>{title}</span>;
+    if (!unique.length) return <span style={style}>{displayTitle}</span>;
 
     return (
         <span ref={ref} style={{ position: 'relative', display: 'inline' }}>
@@ -26,7 +41,7 @@ export default function TitleWithAltNames({ title, altTitles = [], style = {} })
                 style={{ cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: '3px', ...style }}
                 title="Click to see alternative titles"
             >
-                {title}
+                {displayTitle}
             </span>
             {open && (
                 <div style={{

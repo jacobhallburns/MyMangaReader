@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { searchMangaDex, extractMeta, getCoverUrl } from '../../../lib/mangadex';
+import { searchAniList, extractAniListMeta } from '../../../lib/anilist';
 import dbConnect from '../../../lib/dbConnect';
 import Manga from '../../../lib/api/Manga';
 
 export interface SearchResult {
-  id: string;          // mangaDexId
+  id: string;          // String(anilistId)
   title: string;
   synopsis: string;
   posterImage: string | null;
@@ -15,7 +15,7 @@ export interface SearchResult {
   volumeCount: number | undefined;
   averageRating: number;
   ratingCount: number;
-  _raw: any;           // full MangaDex data object, passed through to add.ts
+  _raw: any;           // full AniList media object, passed through to add.ts
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -25,30 +25,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!q) return res.status(400).json({ error: 'q is required' });
 
   try {
-    const { data } = await searchMangaDex(q, 20);
+    const { data } = await searchAniList(q, 20);
 
-    // Bulk-fetch any stored ratings for these results
     await dbConnect();
-    const mangaDexIds = (data || []).map((m: any) => m.id);
+    const anilistIds = (data || []).map((m: any) => m.id);
     const mangaRecords = await Manga.find(
-      { mangaDexId: { $in: mangaDexIds } },
-      'mangaDexId averageRating ratingCount'
+      { anilistId: { $in: anilistIds } },
+      'anilistId averageRating ratingCount'
     ).lean() as any[];
-    const ratingMap = new Map(mangaRecords.map((m: any) => [m.mangaDexId, m]));
+    const ratingMap = new Map(mangaRecords.map((m: any) => [m.anilistId, m]));
 
-    const results: SearchResult[] = (data || []).map((manga: any) => {
-      const meta = extractMeta(manga);
-      const coverRel = (manga.relationships || []).find((r: any) => r.type === 'cover_art');
-      const coverUrl = coverRel?.attributes?.fileName
-        ? getCoverUrl(manga.id, coverRel.attributes.fileName, 512)
-        : null;
-      const dbRecord = ratingMap.get(manga.id) as any;
-
+    const results: SearchResult[] = (data || []).map((media: any) => {
+      const meta = extractAniListMeta(media);
+      const dbRecord = ratingMap.get(media.id) as any;
       return {
-        id: manga.id,
+        id: String(media.id),
         title: meta.title,
         synopsis: meta.synopsis,
-        posterImage: coverUrl,
+        posterImage: meta.coverUrl ?? null,
         author: meta.author,
         genres: meta.genres,
         status: meta.status,
@@ -56,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         volumeCount: meta.volumeCount,
         averageRating: dbRecord?.averageRating ?? 0,
         ratingCount: dbRecord?.ratingCount ?? 0,
-        _raw: manga,
+        _raw: media,
       };
     });
 
