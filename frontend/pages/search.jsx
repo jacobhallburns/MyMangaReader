@@ -20,7 +20,7 @@ export default function MangaSearch() {
     const [requestSubmitting, setRequestSubmitting] = useState(false);
     const [requestDone, setRequestDone] = useState(false);
 
-    // Keyed by anilistId (as string) for AniList results
+    // Keyed by kitsuId as string for Kitsu results
     const [addedIds, setAddedIds] = useState(new Set());
     const [addedMangaMap, setAddedMangaMap] = useState(new Map());
 
@@ -31,22 +31,30 @@ export default function MangaSearch() {
     const [editError, setEditError] = useState(null);
     const [saving, setSaving] = useState(false);
 
-    // true when editingManga is a raw MangaDex result (not yet added)
+    // true when editingManga is a raw Kitsu result, not already added
     const isNew = !!editingManga?._raw;
 
     useEffect(() => {
         const fetchAddedManga = async () => {
             if (!isSignedIn) return;
+
             try {
                 const res = await fetch('/api/manga/collection');
                 const dataList = await res.json();
+
                 if (Array.isArray(dataList)) {
                     const ids = new Set();
                     const map = new Map();
+
                     dataList.forEach((entry) => {
-                        const aid = entry.mangaId?.anilistId != null ? String(entry.mangaId.anilistId) : null;
-                        if (aid) { ids.add(aid); map.set(aid, entry); }
+                        const kid = entry.mangaId?.kitsuId != null ? String(entry.mangaId.kitsuId) : null;
+
+                        if (kid) {
+                            ids.add(kid);
+                            map.set(kid, entry);
+                        }
                     });
+
                     setAddedIds(ids);
                     setAddedMangaMap(map);
                 }
@@ -54,22 +62,30 @@ export default function MangaSearch() {
                 console.error('[Search] Failed to load existing manga:', err);
             }
         };
+
         if (isLoaded) fetchAddedManga();
     }, [isSignedIn, isLoaded]);
 
     const searchManga = async (e) => {
         e.preventDefault();
+
         if (!query.trim()) return;
+
         setLoading(true);
         setError(null);
+
         console.log('[Search] searching for:', query);
+
         try {
             const res = await fetch(`/api/manga/search?q=${encodeURIComponent(query)}`);
             const data = await res.json();
+
             if (!res.ok) throw new Error(data.error || `Search failed (${res.status})`);
+
             setResults(data.results || []);
             setHasSearched(true);
             setRequestDone(false);
+
             console.log('[Search] results:', data.results?.length ?? 0);
         } catch (err) {
             console.error('[Search] error:', err);
@@ -81,15 +97,23 @@ export default function MangaSearch() {
 
     const handleRequestTitle = async () => {
         if (!requestTitleText.trim()) return;
+
         setRequestSubmitting(true);
+
         try {
             await fetch('/api/manga/request-title', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title: requestTitleText, notes: requestNotes }),
             });
+
             setRequestDone(true);
-            setTimeout(() => { setRequestTitleText(''); setRequestNotes(''); setRequestDone(false); }, 2000);
+
+            setTimeout(() => {
+                setRequestTitleText('');
+                setRequestNotes('');
+                setRequestDone(false);
+            }, 2000);
         } catch {
             alert('Failed to submit request. Please try again.');
         } finally {
@@ -100,27 +124,31 @@ export default function MangaSearch() {
     const addOrUpdateManga = async () => {
         setEditError(null);
         setSaving(true);
+
         try {
             if (isNew) {
                 const res = await fetch('/api/manga/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        anilistData: editingManga._raw,
+                        kitsuData: editingManga._raw,
                         status: tempStatus,
                         rating: tempRating,
                         notes: tempNotes,
                     }),
                 });
+
                 if (res.ok) {
                     const result = await res.json();
-                    const mdId = editingManga.id;
-                    setAddedIds((prev) => new Set(prev).add(mdId));
-                    setAddedMangaMap((prev) => new Map(prev).set(mdId, result.userEntry));
+                    const kitsuId = editingManga.id;
+
+                    setAddedIds((prev) => new Set(prev).add(kitsuId));
+                    setAddedMangaMap((prev) => new Map(prev).set(kitsuId, result.userEntry));
                     setEditingManga(null);
                 } else {
                     const body = await res.json().catch(() => ({}));
                     const msg = body.detail || body.error || `Server error (${res.status})`;
+
                     setEditError(msg);
                     console.error('[Search] add failed:', res.status, body);
                 }
@@ -128,15 +156,25 @@ export default function MangaSearch() {
                 const res = await fetch(`/api/manga/${editingManga._id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: tempStatus, rating: tempRating, notes: tempNotes }),
+                    body: JSON.stringify({
+                        status: tempStatus,
+                        rating: tempRating,
+                        notes: tempNotes,
+                    }),
                 });
+
                 if (res.ok) {
                     const updatedEntry = await res.json();
-                    const mdId = editingManga.mangaId?.anilistId != null ? String(editingManga.mangaId.anilistId) : null;
-                    if (mdId) setAddedMangaMap((prev) => new Map(prev).set(mdId, updatedEntry));
+                    const kitsuId = editingManga.mangaId?.kitsuId != null ? String(editingManga.mangaId.kitsuId) : null;
+
+                    if (kitsuId) {
+                        setAddedMangaMap((prev) => new Map(prev).set(kitsuId, updatedEntry));
+                    }
+
                     setEditingManga(null);
                 } else {
                     const body = await res.json().catch(() => ({}));
+
                     setEditError(body.detail || body.error || `Server error (${res.status})`);
                     console.error('[Search] patch failed:', res.status, body);
                 }
@@ -157,7 +195,7 @@ export default function MangaSearch() {
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <input
                                 type="text"
-                                placeholder="Search MangaDex..."
+                                placeholder="Search Kitsu..."
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 style={{ flex: 1, padding: '0.7rem', borderRadius: '12px', border: '2px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }}
@@ -167,25 +205,29 @@ export default function MangaSearch() {
                             </button>
                         </div>
                     </form>
+
                     {error && <p style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '0.5rem 0 0 0' }}>{error}</p>}
                 </div>
 
                 {hasSearched && !loading && results.length === 0 && !error && (
                     <div style={{ marginTop: '2rem', padding: '2rem', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)' }}>
                         <p style={{ color: 'var(--text-main)', fontWeight: '700', fontSize: '1.1rem', margin: '0 0 0.3rem 0' }}>No results found</p>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 1.5rem 0' }}>Can't find it on MangaDex? Request it and we'll look into adding it.</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: '0 0 1.5rem 0' }}>Can't find it on Kitsu? Request it and we'll look into adding it.</p>
+
                         <input
                             value={requestTitleText}
                             onChange={(e) => setRequestTitleText(e.target.value)}
                             placeholder="Series title..."
                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '1rem', boxSizing: 'border-box', marginBottom: '0.75rem' }}
                         />
+
                         <textarea
                             value={requestNotes}
                             onChange={(e) => setRequestNotes(e.target.value)}
                             placeholder="Additional notes (optional)..."
                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)', fontSize: '0.92rem', minHeight: '70px', resize: 'none', boxSizing: 'border-box', marginBottom: '0.75rem' }}
                         />
+
                         <button
                             onClick={handleRequestTitle}
                             disabled={requestSubmitting || !requestTitleText.trim()}
@@ -217,9 +259,11 @@ export default function MangaSearch() {
                                         <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.25rem 0', fontWeight: '800' }}>
                                             <TitleWithAltNames title={entry?.mangaId?.title || m.title || 'Unknown Title'} altTitles={m.altTitles ?? []} mediaRaw={m._raw} />
                                         </h2>
+
                                         {m.author && (
                                             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0 0 0.5rem 0' }}>by {m.author}</p>
                                         )}
+
                                         {m.genres?.length > 0 && (
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.6rem' }}>
                                                 {m.genres.slice(0, 5).map(g => (
@@ -227,10 +271,12 @@ export default function MangaSearch() {
                                                 ))}
                                             </div>
                                         )}
+
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 0.5rem 0', flexWrap: 'wrap' }}>
                                             {(entry?.rating ?? 0) > 0 && (
                                                 <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.82rem' }}>★ {entry.rating}</span>
                                             )}
+
                                             {m.averageRating > 0 ? (
                                                 <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
                                                     ★ {fmtRating(m.averageRating)}{' '}
@@ -240,13 +286,16 @@ export default function MangaSearch() {
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>No ratings</span>
                                             )}
                                         </div>
+
                                         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: 0 }}>
                                             {m.synopsis || 'No synopsis available.'}
                                         </p>
                                     </div>
+
                                     <button
                                         onClick={() => {
                                             if (!isSignedIn) return redirectToSignIn();
+
                                             if (isAdded) {
                                                 setEditingManga(entry);
                                                 setTempStatus(entry.status);
@@ -274,7 +323,9 @@ export default function MangaSearch() {
                 {editingManga && (
                     <div onClick={() => { setEditingManga(null); setEditError(null); }} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
                         <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-                            <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>{isNew ? 'Add to List' : 'Edit Entry'}</h2>
+                            <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>
+                                {isNew ? 'Add to List' : 'Edit Entry'}
+                            </h2>
 
                             <div style={{ margin: '1.2rem 0' }}>
                                 <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Status</label>
@@ -291,7 +342,7 @@ export default function MangaSearch() {
                                 <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Rating (1-10)</label>
                                 <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
                                     <option value="0">No Rating</option>
-                                    {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                                    {[...Array(10)].map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
                                 </select>
                             </div>
 
@@ -310,6 +361,7 @@ export default function MangaSearch() {
                                     {editError}
                                 </p>
                             )}
+
                             <button onClick={addOrUpdateManga} disabled={saving} style={{ width: '100%', padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 900, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '1rem', opacity: saving ? 0.7 : 1 }}>
                                 {saving ? 'Saving...' : isNew ? '+ Add Manga' : 'Save Changes'}
                             </button>

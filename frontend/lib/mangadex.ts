@@ -1,2 +1,3 @@
-// DEPRECATED: MangaDex has been removed. Use lib/anilist.ts instead.
+// DEPRECATED: MangaDex is not used as a source in the current app.
+// Use lib/kitsu.ts instead.
 export {};

@@ -1,21 +1,27 @@
 import mongoose from 'mongoose';
 
 const MangaSchema = new mongoose.Schema({
-  anilistId: { type: Number, unique: true, sparse: true }, // primary key for AniList-sourced entries
-  kitsuId: { type: String }, // deprecated — kept for backward compat with old entries
-  mangaDexId: { type: String }, // deprecated — kept for backward compat with old entries
+  kitsuId: { type: String, unique: true, sparse: true }, // primary key for Kitsu-sourced entries
+  anilistId: { type: Number, sparse: true }, // legacy — kept for backward compatibility with existing DB records
+  mangaDexId: { type: String }, // legacy — kept for backward compatibility with old entries
+
   title: { type: String, required: true },
-  altTitles: { type: [String], default: [] }, // romaji, native, English variants from MangaDex altTitles
+  altTitles: { type: [String], default: [] },
   slug: String,
+
   synopsis: String,
   posterImage: String,
   coverImage: String,
   author: String,
+
   chapterCount: Number,
-  volumeCount: Number, // total volumes; prefer this over live Kitsu lookup once populated
+  volumeCount: Number,
+  serialization: String,
   mangaType: String,
+
   status: String,
   genres: { type: [String], default: [] },
+
   averageRating: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
 }, { timestamps: true });

@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { searchAniList, extractAniListMeta } from '../../../lib/anilist';
+import { searchKitsu, extractKitsuMeta } from '../../../lib/kitsu';
 import dbConnect from '../../../lib/dbConnect';
 import Manga from '../../../lib/api/Manga';
 
 export interface SearchResult {
-  id: string;          // String(anilistId)
+  id: string;          // String(kitsuId)
   title: string;
   synopsis: string;
   posterImage: string | null;
@@ -13,9 +13,10 @@ export interface SearchResult {
   status: string | undefined;
   altTitles: string[];
   volumeCount: number | undefined;
+  chapterCount: number | undefined;
   averageRating: number;
   ratingCount: number;
-  _raw: any;           // full AniList media object, passed through to add.ts
+  _raw: any;           // full Kitsu media object, passed through to add.ts
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -25,21 +26,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!q) return res.status(400).json({ error: 'q is required' });
 
   try {
-    const { data } = await searchAniList(q, 20);
+    const { data } = await searchKitsu(q, 20);
 
     await dbConnect();
-    const anilistIds = (data || []).map((m: any) => m.id);
+
+    const kitsuIds = (data || []).map((m: any) => String(m.id));
+
     const mangaRecords = await Manga.find(
-      { anilistId: { $in: anilistIds } },
-      'anilistId averageRating ratingCount'
+      { kitsuId: { $in: kitsuIds } },
+      'kitsuId averageRating ratingCount'
     ).lean() as any[];
-    const ratingMap = new Map(mangaRecords.map((m: any) => [m.anilistId, m]));
+
+    const ratingMap = new Map(
+      mangaRecords.map((m: any) => [String(m.kitsuId), m])
+    );
 
     const results: SearchResult[] = (data || []).map((media: any) => {
-      const meta = extractAniListMeta(media);
-      const dbRecord = ratingMap.get(media.id) as any;
+      const meta = extractKitsuMeta(media);
+      const dbRecord = ratingMap.get(meta.kitsuId) as any;
+
       return {
-        id: String(media.id),
+        id: meta.kitsuId,
         title: meta.title,
         synopsis: meta.synopsis,
         posterImage: meta.coverUrl ?? null,
@@ -48,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: meta.status,
         altTitles: meta.altTitles,
         volumeCount: meta.volumeCount,
+        chapterCount: meta.chapterCount,
         averageRating: dbRecord?.averageRating ?? 0,
         ratingCount: dbRecord?.ratingCount ?? 0,
         _raw: media,
@@ -56,7 +64,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ results });
   } catch (err: any) {
-    console.error('[Search]', { event: 'error', q, error: err.message });
+    console.error('[Search]', {
+      event: 'error',
+      q,
+      error: err.message,
+    });
+
     return res.status(500).json({ error: 'Search failed' });
   }
 }

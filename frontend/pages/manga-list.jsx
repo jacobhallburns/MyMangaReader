@@ -15,18 +15,15 @@ export default function MangaList() {
     const [manga, setManga] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Search / Filter / Sort
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     const [sortBy, setSortBy] = useState('Updated');
 
-    // Edit modal state
     const [editingManga, setEditingManga] = useState(null);
     const [tempStatus, setTempStatus] = useState('plan_to_read');
     const [tempRating, setTempRating] = useState(0);
     const [tempNotes, setTempNotes] = useState('');
 
-    // Volume tracker popup state
     const [detailManga, setDetailManga] = useState(null);
     const [volumes, setVolumes] = useState([]);
     const [volumesLoading, setVolumesLoading] = useState(false);
@@ -37,44 +34,57 @@ export default function MangaList() {
     const [loadMoreLoading, setLoadMoreLoading] = useState(false);
     const [volumePage, setVolumePage] = useState(1);
     const [pendingAdvancePage, setPendingAdvancePage] = useState(null);
-    const [volumeStates, setVolumeStates] = useState({}); // { "1": { read, online, physical }, ... }
-
+    const [volumeStates, setVolumeStates] = useState({});
 
     useEffect(() => {
         let cancelled = false;
+
         const fetchManga = async () => {
             try {
                 const res = await fetch('/api/manga/collection');
+
                 if (res.status === 503) {
                     if (!cancelled) setTimeout(fetchManga, 300);
                     return;
                 }
+
                 const data = await res.json();
+
                 if (!cancelled) setManga(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Fetch failed:", err);
+
                 if (!cancelled) setTimeout(fetchManga, 500);
             } finally {
                 if (!cancelled) setLoading(false);
             }
         };
+
         fetchManga();
-        return () => { cancelled = true; };
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const visibleManga = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
+
         let list = [...manga].filter((m) => {
             const statusOk = statusFilter === 'All' || (m.status || '').toLowerCase() === statusFilter.toLowerCase();
+
             if (!q) return statusOk;
+
             const title = (m.mangaId?.title || m.title || '').toLowerCase();
             const synopsis = (m.mangaId?.synopsis || m.synopsis || '').toLowerCase();
+
             return statusOk && (title.includes(q) || synopsis.includes(q));
         });
 
         if (sortBy === 'TitleAZ') list.sort((a, b) => (a.mangaId?.title || '').localeCompare(b.mangaId?.title || ''));
         else if (sortBy === 'TitleZA') list.sort((a, b) => (b.mangaId?.title || '').localeCompare(a.mangaId?.title || ''));
         else if (sortBy === 'RatingHigh') list.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+
         return list;
     }, [manga, searchTerm, statusFilter, sortBy]);
 
@@ -85,8 +95,10 @@ export default function MangaList() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rating: tempRating, status: tempStatus, notes: tempNotes }),
             });
+
             if (res.ok) {
                 const updatedData = await res.json();
+
                 setManga(prev => prev.map(m => m._id === editingManga._id
                     ? { ...m, status: updatedData.status, rating: updatedData.rating, notes: updatedData.notes }
                     : m
@@ -102,6 +114,7 @@ export default function MangaList() {
     const handleDelete = async () => {
         try {
             const res = await fetch(`/api/manga/${editingManga._id}`, { method: 'DELETE' });
+
             if (res.ok) setManga(prev => prev.filter(m => m._id !== editingManga._id));
         } catch (err) {
             alert(`Failed to delete: ${err.message}`);
@@ -112,15 +125,26 @@ export default function MangaList() {
 
     const loadVolumes = async (entry) => {
         const mangaDocId = entry.mangaId?._id;
+
         if (!mangaDocId) {
             setVolumesError('Manga document ID missing.');
             return;
         }
+
         const title = entry.mangaId?.title || '(unknown)';
-        console.log('[VolumePopup]', { event: 'open', title, mangaDocId, mangaDexId: entry.mangaId?.mangaDexId ?? null, volumeCount: entry.mangaId?.volumeCount ?? null });
+
+        console.log('[VolumePopup]', {
+            event: 'open',
+            title,
+            mangaDocId,
+            kitsuId: entry.mangaId?.kitsuId ?? null,
+            volumeCount: entry.mangaId?.volumeCount ?? null
+        });
+
         if (!entry.mangaId?.volumeCount) {
             console.warn('[VolumePopup] volumeCount is null or 0 for', title, entry.mangaId);
         }
+
         setVolumesLoading(true);
         setVolumesError(null);
         setVolumes([]);
@@ -129,43 +153,70 @@ export default function MangaList() {
         setMangaTitle('');
         setVolumePage(1);
         setPendingAdvancePage(null);
+
         try {
             const res = await fetch(`/api/manga/volumes/${mangaDocId}`);
             const data = await res.json();
-            console.log('[VolumePopup]', { event: 'volumes_response', title, ok: res.ok, count: data.volumes?.length ?? 0, genres: data.genres?.length ?? 0, warning: data._warning ?? null });
+
+            console.log('[VolumePopup]', {
+                event: 'volumes_response',
+                title,
+                ok: res.ok,
+                count: data.volumes?.length ?? 0,
+                genres: data.genres?.length ?? 0,
+                warning: data._warning ?? null
+            });
+
             if (!res.ok) {
                 setVolumesError(data?.error || `API error ${res.status}`);
                 return;
             }
-            if (data._warning) console.warn('[VolumePopup]', { event: 'warning', title, warning: data._warning });
+
+            if (data._warning) {
+                console.warn('[VolumePopup]', {
+                    event: 'warning',
+                    title,
+                    warning: data._warning
+                });
+            }
+
             const vols = data.volumes || [];
-            console.log('[VolumePopup]', { event: 'rows_generated', title, rowCount: vols.length });
+
+            console.log('[VolumePopup]', {
+                event: 'rows_generated',
+                title,
+                rowCount: vols.length
+            });
+
             setVolumes(vols);
             setNextCursor(data.nextCursor ?? null);
             setSerialization(data.serialization ?? null);
             setMangaTitle(data.mangaTitle || '');
 
-            // Backfill genres/author/cover into local state so popup and card list both
-            // show fresh MangaDex metadata immediately without requiring a page refresh.
             if (data.genres?.length > 0 || data.author || data.posterImage) {
                 const patch = {
                     ...(data.genres?.length > 0 ? { genres: data.genres } : {}),
                     ...(data.author ? { author: data.author } : {}),
                 };
-                // Update the manga list (card view)
+
                 setManga(prev => prev.map(m =>
                     m.mangaId?._id === mangaDocId
                         ? { ...m, mangaId: { ...m.mangaId, ...patch } }
                         : m
                 ));
-                // Update the popup snapshot so genres/author show immediately
+
                 setDetailManga(prev => prev
                     ? { ...prev, mangaId: { ...prev.mangaId, ...patch } }
                     : prev
                 );
             }
         } catch (err) {
-            console.error('[VolumePopup]', { event: 'fetch_error', title, error: err.message });
+            console.error('[VolumePopup]', {
+                event: 'fetch_error',
+                title,
+                error: err.message
+            });
+
             setVolumesError(err.message || 'Network error');
         } finally {
             setVolumesLoading(false);
@@ -174,33 +225,53 @@ export default function MangaList() {
 
     const loadVolumeStates = async (entry) => {
         const mangaObjId = entry.mangaId?._id;
+
         if (!mangaObjId) return;
+
         try {
             const res = await fetch(`/api/manga/volume-tracker/${mangaObjId}`);
             const data = await res.json();
-            console.log('[VolumePopup]', { event: 'state_loaded', mangaObjId, volumeStateCount: Object.keys(data.volumes || {}).length });
+
+            console.log('[VolumePopup]', {
+                event: 'state_loaded',
+                mangaObjId,
+                volumeStateCount: Object.keys(data.volumes || {}).length
+            });
+
             if (res.ok) setVolumeStates(data.volumes || {});
         } catch (err) {
-            console.error('[VolumePopup]', { event: 'state_load_error', mangaObjId, error: err.message });
+            console.error('[VolumePopup]', {
+                event: 'state_load_error',
+                mangaObjId,
+                error: err.message
+            });
         }
     };
 
     const loadMoreVolumes = async () => {
         if (!nextCursor || !detailManga) return;
-        const kitsuId = detailManga.mangaId?.kitsuId;
-        if (!kitsuId) return;
+
+        const mangaDocId = detailManga.mangaId?._id;
+
+        if (!mangaDocId) return;
+
         setLoadMoreLoading(true);
+
         try {
-            const res = await fetch(`/api/manga/volumes/${kitsuId}?cursor=${encodeURIComponent(nextCursor)}`);
+            const res = await fetch(`/api/manga/volumes/${mangaDocId}?cursor=${encodeURIComponent(nextCursor)}`);
+
             if (!res.ok) throw new Error();
+
             const data = await res.json();
+
             setVolumes(prev => {
                 const seen = new Set(prev.map(v => v.volumeNumber));
                 return [...prev, ...(data.volumes || []).filter(v => !seen.has(v.volumeNumber))];
             });
+
             setNextCursor(data.nextCursor ?? null);
         } catch {
-            // silently fail — existing list is preserved
+            // existing list is preserved
         } finally {
             setLoadMoreLoading(false);
         }
@@ -209,6 +280,7 @@ export default function MangaList() {
     useEffect(() => {
         if (pendingAdvancePage !== null && !loadMoreLoading) {
             const total = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
+
             setVolumePage(Math.min(pendingAdvancePage, total));
             setPendingAdvancePage(null);
         }
@@ -216,7 +288,9 @@ export default function MangaList() {
 
     const goToVolumePage = (page) => {
         const total = Math.ceil(volumes.length / VOLUMES_PER_PAGE);
+
         if (page < 1 || (page > total && !nextCursor)) return;
+
         if (page > total && nextCursor && !loadMoreLoading) {
             setPendingAdvancePage(page);
             loadMoreVolumes();
@@ -234,11 +308,18 @@ export default function MangaList() {
 
     const handleVolumeToggle = async (volumeNumber, field, value) => {
         const key = String(volumeNumber);
-        // Optimistic update
+
         setVolumeStates(prev => ({
             ...prev,
-            [key]: { read: false, online: false, physical: false, ...(prev[key] || {}), [field]: value },
+            [key]: {
+                read: false,
+                online: false,
+                physical: false,
+                ...(prev[key] || {}),
+                [field]: value
+            },
         }));
+
         try {
             await fetch(`/api/manga/volume-tracker/${detailManga.mangaId._id}`, {
                 method: 'PATCH',
@@ -246,14 +327,15 @@ export default function MangaList() {
                 body: JSON.stringify({ volumeNumber: key, field, value }),
             });
         } catch {
-            // Rollback on network failure
             setVolumeStates(prev => ({
                 ...prev,
-                [key]: { ...(prev[key] || {}), [field]: !value },
+                [key]: {
+                    ...(prev[key] || {}),
+                    [field]: !value
+                },
             }));
         }
     };
-
 
     if (loading) return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -273,6 +355,7 @@ export default function MangaList() {
                             placeholder="Search List..."
                             style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }}
                         />
+
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
                             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                 <option value="All">All Status</option>
@@ -282,6 +365,7 @@ export default function MangaList() {
                                 <option value="on_hold">On Hold</option>
                                 <option value="dropped">Dropped</option>
                             </select>
+
                             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                 <option value="Updated">Default</option>
                                 <option value="TitleAZ">A → Z</option>
@@ -294,16 +378,20 @@ export default function MangaList() {
 
                 <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {visibleManga.map((entry) => (
-                        <li key={entry._id} onClick={() => openDetail(entry)} style={{
-                            background: 'var(--card-bg)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '24px',
-                            padding: '1.5rem',
-                            display: 'flex',
-                            gap: '1.5rem',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                            cursor: 'pointer'
-                        }}>
+                        <li
+                            key={entry._id}
+                            onClick={() => openDetail(entry)}
+                            style={{
+                                background: 'var(--card-bg)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '24px',
+                                padding: '1.5rem',
+                                display: 'flex',
+                                gap: '1.5rem',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                                cursor: 'pointer'
+                            }}
+                        >
                             <div style={{
                                 width: '140px',
                                 height: '210px',
@@ -327,15 +415,17 @@ export default function MangaList() {
                                     <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.6rem 0', fontWeight: '800' }}>
                                         <TitleWithAltNames title={entry.mangaId?.title || entry.title} altTitles={entry.mangaId?.altTitles ?? []} />
                                     </h2>
+
                                     <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 0.75rem 0' }}>
                                         {entry.mangaId?.synopsis?.slice(0, 200) || entry.synopsis?.slice(0, 200)}...
                                     </p>
 
-                                    {/* Genre tags */}
                                     {(entry.mangaId?.genres || []).length > 0 && (
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.75rem' }}>
-                                            {(entry.mangaId.genres).slice(0, 5).map(g => (
-                                                <span key={g} style={{ padding: '0.18rem 0.55rem', borderRadius: '20px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '600' }}>{g}</span>
+                                            {entry.mangaId.genres.slice(0, 5).map(g => (
+                                                <span key={g} style={{ padding: '0.18rem 0.55rem', borderRadius: '20px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '600' }}>
+                                                    {g}
+                                                </span>
                                             ))}
                                         </div>
                                     )}
@@ -352,10 +442,12 @@ export default function MangaList() {
                                         <span style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'rgba(76, 175, 80, 0.15)', color: 'var(--accent-green)', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                             {entry.status.replace(/_/g, ' ')}
                                         </span>
+
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                             {entry.rating > 0 && (
                                                 <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.82rem' }}>★ {entry.rating}</span>
                                             )}
+
                                             {(entry.mangaId?.averageRating ?? 0) > 0 ? (
                                                 <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
                                                     ★ {fmtRating(entry.mangaId.averageRating)}{' '}
@@ -385,165 +477,176 @@ export default function MangaList() {
                     ))}
                 </ul>
 
-                {/* VOLUME TRACKER POPUP */}
                 {detailManga && (
-                    <>
+                    <div
+                        onClick={() => setDetailManga(null)}
+                        style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}
+                    >
                         <div
-                            onClick={() => setDetailManga(null)}
-                            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '92%', maxWidth: '900px', minHeight: '500px', maxHeight: '85vh', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '1.1rem', overflowY: 'hidden' }}
                         >
-                            <div
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ width: '92%', maxWidth: '900px', minHeight: '500px', maxHeight: '85vh', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '1.1rem', overflowY: 'hidden' }}
-                            >
-                                {/* Series header */}
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                                    <div style={{ width: '72px', height: '100px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#1a1a1a', border: '1px solid var(--border-color)' }}>
-                                        <img
-                                            src={detailManga.mangaId?.posterImage || '/placeholder.png'}
-                                            referrerPolicy="no-referrer"
-                                            alt=""
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <h2 style={{ margin: '0 0 0.2rem 0', color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: '800', lineHeight: 1.3 }}>
-                                            {mangaTitle || detailManga.mangaId?.title}
-                                        </h2>
-                                        {detailManga.mangaId?.author && (
-                                            <p style={{ margin: '0 0 0.45rem 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                                                by {detailManga.mangaId.author}
-                                            </p>
-                                        )}
-                                        {(detailManga.mangaId?.genres || []).length > 0 && (
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                                {detailManga.mangaId.genres.slice(0, 6).map(g => (
-                                                    <span key={g} style={{ padding: '0.18rem 0.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '600' }}>{g}</span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => setDetailManga(null)}
-                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.1rem', flexShrink: 0 }}
-                                    >✕</button>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                                <div style={{ width: '72px', height: '100px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#1a1a1a', border: '1px solid var(--border-color)' }}>
+                                    <img
+                                        src={detailManga.mangaId?.posterImage || '/placeholder.png'}
+                                        referrerPolicy="no-referrer"
+                                        alt=""
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
                                 </div>
 
-                                {/* Stats summary bar */}
-                                {(() => {
-                                    const states = Object.values(volumeStates);
-                                    const readCount = states.filter(s => s.read).length;
-                                    const onlineCount = states.filter(s => s.online).length;
-                                    const physicalCount = states.filter(s => s.physical).length;
-                                    const total = volumes.length;
-                                    return (
-                                        <div style={{ display: 'flex', gap: '1.25rem', background: 'var(--bg-color)', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.83rem', fontWeight: '600', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                                            <span>Read: <span style={{ color: 'var(--accent-green)' }}>{readCount}/{total}</span></span>
-                                            <span>Online: <span style={{ color: 'var(--text-main)' }}>{onlineCount}</span></span>
-                                            <span>Physical: <span style={{ color: 'var(--text-main)' }}>{physicalCount}</span></span>
-                                        </div>
-                                    );
-                                })()}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <h2 style={{ margin: '0 0 0.2rem 0', color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: '800', lineHeight: 1.3 }}>
+                                        {mangaTitle || detailManga.mangaId?.title}
+                                    </h2>
 
-                                {/* Scrollable volume list — only this area scrolls */}
-                                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', gap: '0.38rem' }}>
-                                    {volumesLoading && (
-                                        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>Loading volumes...</p>
+                                    {detailManga.mangaId?.author && (
+                                        <p style={{ margin: '0 0 0.45rem 0', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                                            by {detailManga.mangaId.author}
+                                        </p>
                                     )}
 
-                                    {volumesError && !volumesLoading && (
-                                        <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                                            <p style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '0 0 1rem 0', fontFamily: 'monospace' }}>{volumesError}</p>
-                                            <button onClick={() => loadVolumes(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Retry</button>
+                                    {(detailManga.mangaId?.genres || []).length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                            {detailManga.mangaId.genres.slice(0, 6).map(g => (
+                                                <span key={g} style={{ padding: '0.18rem 0.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '600' }}>
+                                                    {g}
+                                                </span>
+                                            ))}
                                         </div>
                                     )}
-
-                                    {!volumesLoading && !volumesError && volumes.length === 0 && (
-                                        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No volumes available for this manga.</p>
-                                    )}
-
-                                    {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
-                                        const visibleVolumes = volumes.slice((volumePage - 1) * VOLUMES_PER_PAGE, volumePage * VOLUMES_PER_PAGE);
-                                        const affiliateTag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG || 'MYMANGA-20';
-                                        const seriesTitle = mangaTitle || detailManga.mangaId?.title || '';
-                                        return visibleVolumes.map((vol) => {
-                                            const key = String(vol.volumeNumber);
-                                            const state = volumeStates[key] || { read: false, online: false, physical: false };
-                                            const isRead = !!state.read;
-                                            const amazonHref = `https://www.amazon.com/s?k=${encodeURIComponent(`${seriesTitle} Volume ${vol.volumeNumber}`)}&tag=${affiliateTag}`;
-                                            return (
-                                                <div
-                                                    key={vol.volumeNumber}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.5rem 0.75rem', background: 'var(--bg-color)', borderRadius: '10px', flexWrap: 'wrap', flexShrink: 0 }}
-                                                >
-                                                    <span style={{ width: '5.5rem', fontWeight: '700', color: 'var(--text-main)', fontSize: '0.85rem', flexShrink: 0 }}>
-                                                        Volume {vol.volumeNumber}
-                                                    </span>
-
-                                                    <button
-                                                        onClick={() => handleVolumeToggle(vol.volumeNumber, 'read', !isRead)}
-                                                        style={{ padding: '0.26rem 0.72rem', borderRadius: '20px', border: `1px solid ${isRead ? 'var(--accent-green)' : 'var(--border-color)'}`, background: isRead ? 'rgba(0,204,102,0.12)' : 'transparent', color: isRead ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: '700', fontSize: '0.74rem', cursor: 'pointer', minWidth: '56px', boxShadow: isRead ? '0 0 5px rgba(0,204,102,0.28)' : 'none', transition: 'all 0.15s ease', flexShrink: 0 }}
-                                                    >
-                                                        {isRead ? 'Read' : 'Unread'}
-                                                    </button>
-
-                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                                                        <input type="checkbox" checked={!!state.online} onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'online', e.target.checked)} style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }} />
-                                                        Online Copy
-                                                    </label>
-
-                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                                                        <input type="checkbox" checked={!!state.physical} onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'physical', e.target.checked)} style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }} />
-                                                        Physical Copy
-                                                    </label>
-
-                                                    <a href={amazonHref} target="_blank" rel="noopener noreferrer sponsored" onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', padding: '0.26rem 0.72rem', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.74rem', fontWeight: '600', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                                                        Buy on Amazon
-                                                    </a>
-                                                </div>
-                                            );
-                                        });
-                                    })()}
                                 </div>
 
-                                {/* Affiliate disclosure */}
-                                <p style={{ flexShrink: 0, margin: 0, textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', opacity: 0.6 }}>
-                                    As an Amazon Associate I earn from qualifying purchases.
-                                </p>
+                                <button
+                                    onClick={() => setDetailManga(null)}
+                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1, padding: '0 0.1rem', flexShrink: 0 }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
 
-                                {/* Pagination — pinned below the scroll area */}
+                            {(() => {
+                                const states = Object.values(volumeStates);
+                                const readCount = states.filter(s => s.read).length;
+                                const onlineCount = states.filter(s => s.online).length;
+                                const physicalCount = states.filter(s => s.physical).length;
+                                const total = volumes.length;
+
+                                return (
+                                    <div style={{ display: 'flex', gap: '1.25rem', background: 'var(--bg-color)', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.83rem', fontWeight: '600', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                                        <span>Read: <span style={{ color: 'var(--accent-green)' }}>{readCount}/{total}</span></span>
+                                        <span>Online: <span style={{ color: 'var(--text-main)' }}>{onlineCount}</span></span>
+                                        <span>Physical: <span style={{ color: 'var(--text-main)' }}>{physicalCount}</span></span>
+                                    </div>
+                                );
+                            })()}
+
+                            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', gap: '0.38rem' }}>
+                                {volumesLoading && (
+                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>Loading volumes...</p>
+                                )}
+
+                                {volumesError && !volumesLoading && (
+                                    <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                                        <p style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '0 0 1rem 0', fontFamily: 'monospace' }}>{volumesError}</p>
+                                        <button onClick={() => loadVolumes(detailManga)} style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                                            Retry
+                                        </button>
+                                    </div>
+                                )}
+
+                                {!volumesLoading && !volumesError && volumes.length === 0 && (
+                                    <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0', margin: 0 }}>No volumes available for this manga.</p>
+                                )}
+
                                 {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
-                                    const totalKnownPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
-                                    const canGoNext = volumePage < totalKnownPages || !!nextCursor;
-                                    const canGoPrev = volumePage > 1;
-                                    const pageNums = getPageNumbers(volumePage, totalKnownPages);
-                                    const btnBase = { border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', minWidth: '34px', textAlign: 'center' };
-                                    if (totalKnownPages <= 1 && !nextCursor) return null;
-                                    return (
-                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flexShrink: 0 }}>
-                                            <button onClick={() => goToVolumePage(volumePage - 1)} disabled={!canGoPrev || loadMoreLoading} style={{ ...btnBase, background: canGoPrev ? 'var(--bg-color)' : 'transparent', color: canGoPrev ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoPrev ? 1 : 0.35, cursor: canGoPrev ? 'pointer' : 'default' }}>←</button>
+                                    const visibleVolumes = volumes.slice((volumePage - 1) * VOLUMES_PER_PAGE, volumePage * VOLUMES_PER_PAGE);
+                                    const affiliateTag = process.env.NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG || 'MYMANGA-20';
+                                    const seriesTitle = mangaTitle || detailManga.mangaId?.title || '';
 
-                                            {pageNums.map((p, i) =>
-                                                p === '...' ? (
-                                                    <span key={`e${i}`} style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>
-                                                ) : (
-                                                    <button key={p} onClick={() => goToVolumePage(p)} disabled={loadMoreLoading} style={{ ...btnBase, background: p === volumePage ? 'var(--text-main)' : 'var(--bg-color)', color: p === volumePage ? 'var(--bg-color)' : 'var(--text-main)', borderColor: p === volumePage ? 'var(--text-main)' : 'var(--border-color)' }}>{p}</button>
-                                                )
-                                            )}
+                                    return visibleVolumes.map((vol) => {
+                                        const key = String(vol.volumeNumber);
+                                        const state = volumeStates[key] || { read: false, online: false, physical: false };
+                                        const isRead = !!state.read;
+                                        const amazonHref = `https://www.amazon.com/s?k=${encodeURIComponent(`${seriesTitle} Volume ${vol.volumeNumber}`)}&tag=${affiliateTag}`;
 
-                                            {nextCursor && <span style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>}
+                                        return (
+                                            <div
+                                                key={vol.volumeNumber}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', padding: '0.5rem 0.75rem', background: 'var(--bg-color)', borderRadius: '10px', flexWrap: 'wrap', flexShrink: 0 }}
+                                            >
+                                                <span style={{ width: '5.5rem', fontWeight: '700', color: 'var(--text-main)', fontSize: '0.85rem', flexShrink: 0 }}>
+                                                    Volume {vol.volumeNumber}
+                                                </span>
 
-                                            <button onClick={() => goToVolumePage(volumePage + 1)} disabled={!canGoNext || loadMoreLoading} style={{ ...btnBase, background: canGoNext ? 'var(--bg-color)' : 'transparent', color: canGoNext ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoNext && !loadMoreLoading ? 1 : 0.35, cursor: canGoNext && !loadMoreLoading ? 'pointer' : 'default' }}>{loadMoreLoading && pendingAdvancePage ? '…' : '→'}</button>
-                                        </div>
-                                    );
+                                                <button
+                                                    onClick={() => handleVolumeToggle(vol.volumeNumber, 'read', !isRead)}
+                                                    style={{ padding: '0.26rem 0.72rem', borderRadius: '20px', border: `1px solid ${isRead ? 'var(--accent-green)' : 'var(--border-color)'}`, background: isRead ? 'rgba(0,204,102,0.12)' : 'transparent', color: isRead ? 'var(--accent-green)' : 'var(--text-muted)', fontWeight: '700', fontSize: '0.74rem', cursor: 'pointer', minWidth: '56px', boxShadow: isRead ? '0 0 5px rgba(0,204,102,0.28)' : 'none', transition: 'all 0.15s ease', flexShrink: 0 }}
+                                                >
+                                                    {isRead ? 'Read' : 'Unread'}
+                                                </button>
+
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                                    <input type="checkbox" checked={!!state.online} onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'online', e.target.checked)} style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }} />
+                                                    Online Copy
+                                                </label>
+
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.28rem', cursor: 'pointer', fontSize: '0.76rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                                                    <input type="checkbox" checked={!!state.physical} onChange={(e) => handleVolumeToggle(vol.volumeNumber, 'physical', e.target.checked)} style={{ cursor: 'pointer', accentColor: 'var(--accent-green)' }} />
+                                                    Physical Copy
+                                                </label>
+
+                                                <a href={amazonHref} target="_blank" rel="noopener noreferrer sponsored" onClick={(e) => e.stopPropagation()} style={{ marginLeft: 'auto', padding: '0.26rem 0.72rem', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.74rem', fontWeight: '600', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                                    Buy on Amazon
+                                                </a>
+                                            </div>
+                                        );
+                                    });
                                 })()}
                             </div>
-                        </div>
 
-                    </>
+                            <p style={{ flexShrink: 0, margin: 0, textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', opacity: 0.6 }}>
+                                As an Amazon Associate I earn from qualifying purchases.
+                            </p>
+
+                            {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
+                                const totalKnownPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
+                                const canGoNext = volumePage < totalKnownPages || !!nextCursor;
+                                const canGoPrev = volumePage > 1;
+                                const pageNums = getPageNumbers(volumePage, totalKnownPages);
+                                const btnBase = { border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.35rem 0.65rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', minWidth: '34px', textAlign: 'center' };
+
+                                if (totalKnownPages <= 1 && !nextCursor) return null;
+
+                                return (
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', flexShrink: 0 }}>
+                                        <button onClick={() => goToVolumePage(volumePage - 1)} disabled={!canGoPrev || loadMoreLoading} style={{ ...btnBase, background: canGoPrev ? 'var(--bg-color)' : 'transparent', color: canGoPrev ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoPrev ? 1 : 0.35, cursor: canGoPrev ? 'pointer' : 'default' }}>
+                                            ←
+                                        </button>
+
+                                        {pageNums.map((p, i) =>
+                                            p === '...' ? (
+                                                <span key={`e${i}`} style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>
+                                            ) : (
+                                                <button key={p} onClick={() => goToVolumePage(p)} disabled={loadMoreLoading} style={{ ...btnBase, background: p === volumePage ? 'var(--text-main)' : 'var(--bg-color)', color: p === volumePage ? 'var(--bg-color)' : 'var(--text-main)', borderColor: p === volumePage ? 'var(--text-main)' : 'var(--border-color)' }}>
+                                                    {p}
+                                                </button>
+                                            )
+                                        )}
+
+                                        {nextCursor && <span style={{ color: 'var(--text-muted)', padding: '0 0.2rem', fontSize: '0.82rem' }}>…</span>}
+
+                                        <button onClick={() => goToVolumePage(volumePage + 1)} disabled={!canGoNext || loadMoreLoading} style={{ ...btnBase, background: canGoNext ? 'var(--bg-color)' : 'transparent', color: canGoNext ? 'var(--text-main)' : 'var(--text-muted)', opacity: canGoNext && !loadMoreLoading ? 1 : 0.35, cursor: canGoNext && !loadMoreLoading ? 'pointer' : 'default' }}>
+                                            {loadMoreLoading && pendingAdvancePage ? '…' : '→'}
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
                 )}
 
-                {/* EDIT MODAL */}
                 {editingManga && (
                     <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
                         <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
@@ -564,7 +667,7 @@ export default function MangaList() {
                                 <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Rating</label>
                                 <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
                                     <option value="0">No Rating</option>
-                                    {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                                    {[...Array(10)].map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
                                 </select>
                             </div>
 
@@ -578,8 +681,13 @@ export default function MangaList() {
                             </div>
 
                             <div style={{ display: 'flex', gap: '1rem' }}>
-                                <button onClick={handleSave} style={{ flex: 2, padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>Save Changes</button>
-                                <button onClick={handleDelete} style={{ flex: 1, padding: '1rem', background: 'rgba(255,68,68,0.1)', color: '#ff4444', borderRadius: '14px', border: '1px solid #ff4444', cursor: 'pointer', fontWeight: '600' }}>Delete</button>
+                                <button onClick={handleSave} style={{ flex: 2, padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>
+                                    Save Changes
+                                </button>
+
+                                <button onClick={handleDelete} style={{ flex: 1, padding: '1rem', background: 'rgba(255,68,68,0.1)', color: '#ff4444', borderRadius: '14px', border: '1px solid #ff4444', cursor: 'pointer', fontWeight: '600' }}>
+                                    Delete
+                                </button>
                             </div>
                         </div>
                     </div>

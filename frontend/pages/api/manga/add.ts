@@ -3,23 +3,31 @@ import dbConnect from '../../../lib/dbConnect';
 import Manga from '../../../lib/api/Manga';
 import UserManga from '../../../lib/api/UserManga';
 import { getAuth } from '@clerk/nextjs/server';
-import { extractAniListMeta } from '../../../lib/anilist';
+import { extractKitsuMeta } from '../../../lib/kitsu';
 import { updateMangaRating } from '../../../lib/updateMangaRating';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   await dbConnect();
+
   const { userId } = getAuth(req);
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
-  const { anilistData, status, rating, notes } = req.body;
-  if (!anilistData) return res.status(400).json({ error: 'anilistData is required' });
+  const { kitsuData, status, rating, notes } = req.body;
 
-  const meta = extractAniListMeta(anilistData);
+  if (!kitsuData) {
+    return res.status(400).json({ error: 'kitsuData is required' });
+  }
+
+  const meta = extractKitsuMeta(kitsuData);
 
   const mangaFields = {
-    anilistId: meta.anilistId,
+    kitsuId: meta.kitsuId,
     title: meta.title,
     altTitles: meta.altTitles,
     synopsis: meta.synopsis,
@@ -27,28 +35,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     coverImage: meta.coverUrl,
     author: meta.author,
     genres: meta.genres,
+    chapterCount: meta.chapterCount,
     volumeCount: meta.volumeCount,
-    mangaType: 'manga',
+    serialization: meta.serialization,
+    mangaType: meta.mangaType || 'manga',
     status: meta.status,
   };
 
   try {
     const globalManga = await Manga.findOneAndUpdate(
-      { anilistId: meta.anilistId },
+      { kitsuId: meta.kitsuId },
       { $set: mangaFields },
       { upsert: true, new: true }
     );
 
     const userEntry = await UserManga.findOneAndUpdate(
       { userId, mangaId: globalManga._id },
-      { $set: { status: status || 'plan_to_read', rating: rating || 0, notes: notes || '' } },
+      {
+        $set: {
+          status: status || 'plan_to_read',
+          rating: rating || 0,
+          notes: notes || '',
+        },
+      },
       { upsert: true, new: true }
     );
 
-    if (rating) await updateMangaRating(globalManga._id);
-    return res.status(200).json({ success: true, manga: globalManga, userEntry });
+    if (rating) {
+      await updateMangaRating(globalManga._id);
+    }
+
+    return res.status(200).json({
+      success: true,
+      manga: globalManga,
+      userEntry,
+    });
   } catch (error: any) {
-    console.error('[Add]', { event: 'add_error', anilistId: meta.anilistId, message: error?.message, code: error?.code });
-    return res.status(500).json({ error: 'Failed to add manga', detail: error?.message });
+    console.error('[Add]', {
+      event: 'add_error',
+      kitsuId: meta.kitsuId,
+      message: error?.message,
+      code: error?.code,
+    });
+
+    return res.status(500).json({
+      error: 'Failed to add manga',
+      detail: error?.message,
+    });
   }
 }

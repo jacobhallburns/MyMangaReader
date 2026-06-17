@@ -1,39 +1,107 @@
 # MyMangaReader
 
-A full-stack web application for tracking manga, managing a personal collection, and discovering new series.
+A manga tracking and discovery website for saving manga, rating entries, tracking owned/read volumes, and finding recommendations.
 
-Users can search for manga, save them to their list, and manage progress with statuses and ratings. The app integrates with the Kitsu API for real-time data while using a custom backend for persistent storage.
+## Current Stack
 
-## Live Site
+* **Frontend / Backend**: Next.js
+* **Auth**: Clerk
+* **Database**: MongoDB with Mongoose
+* **Manga API**: Kitsu API
+* **Deployment**: Vercel
+* **Affiliate links**: Amazon Associate tag
 
-[https://my-manga-reader-pi.vercel.app](https://my-manga-reader-pi.vercel.app/)
+## Main Features
 
----
+* Search manga using Kitsu
+* Add manga to a personal list
+* Edit reading status, rating, and notes
+* View global average ratings
+* Get recommendation and trending manga
+* Random "Fortune's Pick" recommendation
+* Track manga volumes as:
 
-## Features
+  * Read / unread
+  * Online copy owned
+  * Physical copy owned
+* Amazon affiliate links for volume searches
+* User theme and title language settings
 
-* Search for manga
-* Add manga to a personal collection
-* Edit reading status and rating
-* Remove entries from your list
-* Personalized recommendations
+## Local Setup
 
----
+From the project root, go into the frontend folder:
 
-## Tech Stack
+```bash
+cd frontend
+npm install
+```
 
-* **Frontend:** Next.js, React, TypeScript
-* **Backend:** Node.js, Express
-* **Database:** MongoDB (Mongoose)
-* **API:** Kitsu API
+Create a local environment file:
 
----
+```bash
+cp .env.example .env.local
+```
 
-## Environment Variables
+On Windows PowerShell, you can use:
 
-Create a `frontend/.env.local` file with the following variables:
+```powershell
+Copy-Item .env.example .env.local
+```
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG` | Amazon Associates tracking tag appended to volume search links (e.g. `yourtag-20`). Leave blank to omit the tag. |
+Then add the real local development values to:
 
+```text
+frontend/.env.local
+```
+
+Required environment variables:
+
+```env
+MONGODB_URI=
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG=
+KITSU_BASE_URL=https://kitsu.io/api/edge
+```
+
+Do not commit `.env.local`.
+
+## Run Locally
+
+From the `frontend` folder:
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+## Build Check
+
+Before pushing changes, run:
+
+```bash
+npm run build
+```
+
+If the build passes, check changed files:
+
+```bash
+git status
+```
+
+Make sure no environment files are being committed.
+
+## Important Notes
+
+The app currently uses Kitsu as the active manga source.
+
+Old AniList and MangaDex-related fields may still exist in the database models for backward compatibility with older saved manga entries, but new manga data should use `kitsuId`.
+
+Kitsu provides fields such as `volumeCount` and `chapterCount`. The volume tracker generates volume rows from `volumeCount`.
+
+If local development uses the production MongoDB URI, local edits may affect live data.

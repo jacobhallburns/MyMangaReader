@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLang } from '../lib/LangContext';
-import { extractRawTitlesFromAniList, resolvePrimaryTitle, resolveAltTitles } from '../lib/titleLocale';
+import { extractRawTitlesFromMedia, resolvePrimaryTitle, resolveAltTitles } from '../lib/titleLocale';
 
 export default function TitleWithAltNames({ title, altTitles = [], mediaRaw = null, style = {} }) {
     const { lang } = useLang();
@@ -9,12 +9,13 @@ export default function TitleWithAltNames({ title, altTitles = [], mediaRaw = nu
 
     const { displayTitle, displayAlts } = useMemo(() => {
         if (mediaRaw) {
-            const raw = extractRawTitlesFromAniList(mediaRaw);
+            const raw = extractRawTitlesFromMedia(mediaRaw);
             return {
                 displayTitle: resolvePrimaryTitle(raw, lang) || title,
                 displayAlts: resolveAltTitles(raw, lang),
             };
         }
+
         return { displayTitle: title, displayAlts: altTitles };
     }, [mediaRaw, lang, title, altTitles]);
 
@@ -22,10 +23,18 @@ export default function TitleWithAltNames({ title, altTitles = [], mediaRaw = nu
 
     useEffect(() => {
         if (!open) return;
-        const handleOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-        const handleKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+
+        const handleOutside = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+
+        const handleKey = (e) => {
+            if (e.key === 'Escape') setOpen(false);
+        };
+
         document.addEventListener('mousedown', handleOutside);
         document.addEventListener('keydown', handleKey);
+
         return () => {
             document.removeEventListener('mousedown', handleOutside);
             document.removeEventListener('keydown', handleKey);
@@ -37,12 +46,21 @@ export default function TitleWithAltNames({ title, altTitles = [], mediaRaw = nu
     return (
         <span ref={ref} style={{ position: 'relative', display: 'inline' }}>
             <span
-                onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-                style={{ cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: '3px', ...style }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(o => !o);
+                }}
+                style={{
+                    cursor: 'pointer',
+                    textDecoration: 'underline dotted',
+                    textUnderlineOffset: '3px',
+                    ...style
+                }}
                 title="Click to see alternative titles"
             >
                 {displayTitle}
             </span>
+
             {open && (
                 <div style={{
                     position: 'absolute',
@@ -59,11 +77,26 @@ export default function TitleWithAltNames({ title, altTitles = [], mediaRaw = nu
                     maxHeight: '220px',
                     overflowY: 'auto',
                 }}>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '700', margin: '0 0 0.5rem 0', letterSpacing: '0.06em' }}>
+                    <p style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: '700',
+                        margin: '0 0 0.5rem 0',
+                        letterSpacing: '0.06em'
+                    }}>
                         ALTERNATIVE TITLES
                     </p>
+
                     {unique.map((t, i) => (
-                        <p key={i} style={{ color: 'var(--text-main)', fontSize: '0.82rem', margin: '0.2rem 0', lineHeight: 1.35 }}>
+                        <p
+                            key={i}
+                            style={{
+                                color: 'var(--text-main)',
+                                fontSize: '0.82rem',
+                                margin: '0.2rem 0',
+                                lineHeight: 1.35
+                            }}
+                        >
                             {t}
                         </p>
                     ))}

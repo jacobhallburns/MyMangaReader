@@ -1,10 +1,11 @@
 import dbConnect from '../../../lib/dbConnect';
 import UserManga from '../../../lib/api/UserManga';
-import Manga from '../../../lib/api/Manga'; // Required for .populate() to work
+import Manga from '../../../lib/api/Manga'; // needed so populate('mangaId') works
 import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
     await dbConnect();
+
     const { userId } = getAuth(req);
 
     if (!userId) {
@@ -16,36 +17,43 @@ export default async function handler(req, res) {
     switch (method) {
         case 'GET':
             try {
-                // Find user's personal entries and pull the Global Manga data
                 const collection = await UserManga.find({ userId })
-                    .populate('mangaId') 
+                    .populate('mangaId')
+                    .sort({ updatedAt: -1 })
                     .lean();
-                res.status(200).json(collection);
+
+                return res.status(200).json(collection);
             } catch (err) {
-                res.status(500).json({ error: err.message });
+                console.error('[Collection] GET error:', err);
+                return res.status(500).json({ error: err.message });
             }
-            break;
 
         case 'POST':
-            // Note: We usually use /api/manga/add for the complex Kitsu sync,
-            // but if you want to keep POST here, it works like this:
             try {
-                const { mangaId, status, rating } = req.body;
+                const { mangaId, status, rating, notes } = req.body;
+
+                if (!mangaId) {
+                    return res.status(400).json({ error: 'mangaId is required' });
+                }
+
                 const newEntry = new UserManga({
                     userId,
-                    mangaId, // This must be the MongoDB _id of the Manga
+                    mangaId,
                     status: status || 'plan_to_read',
-                    rating: rating || 0
+                    rating: rating || 0,
+                    notes: notes || '',
                 });
+
                 const saved = await newEntry.save();
-                res.status(201).json(saved);
+
+                return res.status(201).json(saved);
             } catch (err) {
-                res.status(400).json({ error: err.message });
+                console.error('[Collection] POST error:', err);
+                return res.status(400).json({ error: err.message });
             }
-            break;
 
         default:
             res.setHeader('Allow', ['GET', 'POST']);
-            res.status(405).end(`Method ${method} Not Allowed`);
+            return res.status(405).end(`Method ${method} Not Allowed`);
     }
 }
