@@ -1,7 +1,8 @@
 import '../styles/globals.css';
 import type { AppProps } from 'next/app';
-import { ClerkProvider, UserButton, useAuth } from '@clerk/nextjs';
+import { ClerkProvider, useAuth } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
+import AccountMenu from '../components/AccountMenu';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { LangContext } from '../lib/LangContext';
@@ -118,7 +119,7 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
               >
                 {isDark ? '☀️' : '🌙'}
               </button>
-              <UserButton />
+              <AccountMenu />
             </nav>
           </header>
         </div>
