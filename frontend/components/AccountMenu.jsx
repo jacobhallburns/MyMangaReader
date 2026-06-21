@@ -191,6 +191,21 @@ export default function AccountMenu() {
                         Public Profile
                     </Link>
 
+                    <Link
+                        href="/friends"
+                        onClick={() => setOpen(false)}
+                        style={{
+                            display: 'block',
+                            padding: '0.8rem 1rem',
+                            color: 'var(--text-main)',
+                            textDecoration: 'none',
+                            fontWeight: 700,
+                            borderTop: '1px solid var(--border-color)',
+                        }}
+                    >
+                        Friends
+                    </Link>
+
                     <button
                         onClick={() => {
                             setOpen(false);

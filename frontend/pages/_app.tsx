@@ -89,6 +89,7 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
             <nav style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <Link href="/manga-list" style={{ fontWeight: 600, color: 'var(--text-main)' }}>Manga List</Link>
               <Link href="/recommendation" style={{ fontWeight: 600, color: 'var(--text-main)' }}>Recommendations</Link>
+              <Link href="/activity" style={{ fontWeight: 600, color: 'var(--text-main)' }}>Activity</Link>
               <Link href="/search" style={{ fontWeight: 600, color: 'var(--text-main)' }}>Add Manga</Link>
               <select
                 value={lang}
