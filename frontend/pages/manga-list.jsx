@@ -610,9 +610,6 @@ export default function MangaList() {
                                 })()}
                             </div>
 
-                            <p style={{ flexShrink: 0, margin: 0, textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', opacity: 0.6 }}>
-                                As an Amazon Associate I earn from qualifying purchases.
-                            </p>
 
                             {!volumesLoading && !volumesError && volumes.length > 0 && (() => {
                                 const totalKnownPages = Math.max(1, Math.ceil(volumes.length / VOLUMES_PER_PAGE));
