@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { LangContext } from '../lib/LangContext';
+import SiteFooter from '../components/Footer';
 
 const NAV_ITEMS = [
   { href: '/manga-list', label: 'Manga List' },
@@ -135,6 +136,7 @@ function ThemeWrapper({ Component, pageProps, isDark, setIsDark }: any) {
         </div>
 
         <Component {...pageProps} isDark={isDark} />
+        <SiteFooter />
       </div>
     </LangContext.Provider>
   );
