@@ -5,17 +5,33 @@ import TitleWithAltNames from '../components/TitleWithAltNames';
 const fmtRating = (n) => String(parseFloat(n.toFixed(2)));
 
 const RatingDisplay = ({ userRating, averageRating, ratingCount }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: '0 0 0.75rem 0', flexWrap: 'wrap' }}>
+    <div
+        className="recommendation-rating-row"
+        style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            margin: '0 0 0.65rem 0',
+            flexWrap: 'wrap',
+        }}
+    >
         {userRating > 0 && (
-            <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.82rem' }}>★ {userRating}</span>
+            <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.78rem' }}>
+                ★ {userRating}
+            </span>
         )}
+
         {averageRating > 0 ? (
-            <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.82rem' }}>
+            <span style={{ color: '#FFD700', fontWeight: '700', fontSize: '0.78rem' }}>
                 ★ {fmtRating(averageRating)}{' '}
-                <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({ratingCount})</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>
+                    ({ratingCount})
+                </span>
             </span>
         ) : (
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>No ratings</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
+                No ratings
+            </span>
         )}
     </div>
 );
@@ -39,8 +55,8 @@ const AddModal = ({ manga, onClose, onAdded }) => {
                     kitsuData: manga._raw,
                     status: tempStatus,
                     rating: tempRating,
-                    notes: tempNotes
-                })
+                    notes: tempNotes,
+                }),
             });
 
             if (res.ok) {
@@ -58,13 +74,64 @@ const AddModal = ({ manga, onClose, onAdded }) => {
     };
 
     return (
-        <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(4px)' }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-                <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>Add to List</h2>
+        <div
+            onClick={onClose}
+            style={{
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.85)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 10000,
+                backdropFilter: 'blur(4px)',
+                padding: '0.75rem',
+            }}
+        >
+            <div
+                className="manga-edit-modal"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    width: '90%',
+                    maxWidth: '420px',
+                    maxHeight: 'calc(100dvh - 1.5rem)',
+                    overflowY: 'auto',
+                    background: 'var(--card-bg)',
+                    borderRadius: '24px',
+                    border: '1px solid var(--border-color)',
+                    padding: 'clamp(1rem, 4vw, 2rem)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                }}
+            >
+                <h2
+                    style={{
+                        color: 'var(--text-main)',
+                        marginTop: 0,
+                        fontSize: 'clamp(1.25rem, 5vw, 1.6rem)',
+                    }}
+                >
+                    Add to List
+                </h2>
 
                 <div style={{ margin: '1.2rem 0' }}>
-                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Status</label>
-                    <select value={tempStatus} onChange={(e) => setTempStatus(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
+                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>
+                        Status
+                    </label>
+
+                    <select
+                        value={tempStatus}
+                        onChange={(e) => setTempStatus(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '0.8rem',
+                            borderRadius: '12px',
+                            marginTop: '0.5rem',
+                            background: 'var(--bg-color)',
+                            color: 'var(--text-main)',
+                            border: '1px solid var(--border-color)',
+                            fontSize: '1rem',
+                        }}
+                    >
                         <option value="reading">Reading</option>
                         <option value="completed">Completed</option>
                         <option value="plan_to_read">Plan to Read</option>
@@ -74,35 +141,113 @@ const AddModal = ({ manga, onClose, onAdded }) => {
                 </div>
 
                 <div style={{ margin: '1.2rem 0' }}>
-                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>Rating (1-10)</label>
-                    <select value={tempRating} onChange={(e) => setTempRating(Number(e.target.value))} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', marginTop: '0.5rem', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '1rem' }}>
+                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>
+                        Rating
+                    </label>
+
+                    <select
+                        value={tempRating}
+                        onChange={(e) => setTempRating(Number(e.target.value))}
+                        style={{
+                            width: '100%',
+                            padding: '0.8rem',
+                            borderRadius: '12px',
+                            marginTop: '0.5rem',
+                            background: 'var(--bg-color)',
+                            color: 'var(--text-main)',
+                            border: '1px solid var(--border-color)',
+                            fontSize: '1rem',
+                        }}
+                    >
                         <option value="0">No Rating</option>
-                        {[...Array(10)].map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                        {[...Array(10)].map((_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                                {i + 1}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
                 <div style={{ margin: '1.2rem 0' }}>
-                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Notes</label>
+                    <label
+                        style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            display: 'block',
+                            marginBottom: '0.5rem',
+                        }}
+                    >
+                        Notes
+                    </label>
+
                     <textarea
                         value={tempNotes}
                         onChange={(e) => setTempNotes(e.target.value)}
                         placeholder="What did you think?"
-                        style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'var(--bg-color)', color: 'var(--text-main)', border: '1px solid var(--border-color)', minHeight: '100px', fontSize: '1rem', resize: 'none', boxSizing: 'border-box' }}
+                        style={{
+                            width: '100%',
+                            padding: '1rem',
+                            borderRadius: '12px',
+                            background: 'var(--bg-color)',
+                            color: 'var(--text-main)',
+                            border: '1px solid var(--border-color)',
+                            minHeight: '100px',
+                            fontSize: '1rem',
+                            resize: 'none',
+                            boxSizing: 'border-box',
+                        }}
                     />
                 </div>
 
                 {addError && (
-                    <p style={{ color: '#ff4444', fontSize: '0.85rem', margin: '0 0 1rem 0', background: 'rgba(255,68,68,0.1)', padding: '0.6rem 0.9rem', borderRadius: '8px' }}>
+                    <p
+                        style={{
+                            color: '#ff4444',
+                            fontSize: '0.85rem',
+                            margin: '0 0 1rem 0',
+                            background: 'rgba(255,68,68,0.1)',
+                            padding: '0.6rem 0.9rem',
+                            borderRadius: '8px',
+                        }}
+                    >
                         {addError}
                     </p>
                 )}
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button onClick={handleConfirmAdd} disabled={adding} style={{ flex: 1, padding: '1rem', background: '#4CAF50', color: 'white', borderRadius: '14px', fontWeight: 900, border: 'none', cursor: adding ? 'not-allowed' : 'pointer', fontSize: '1rem', opacity: adding ? 0.7 : 1 }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={handleConfirmAdd}
+                        disabled={adding}
+                        style={{
+                            flex: '1 1 170px',
+                            padding: '1rem',
+                            background: '#4CAF50',
+                            color: 'white',
+                            borderRadius: '14px',
+                            fontWeight: 900,
+                            border: 'none',
+                            cursor: adding ? 'not-allowed' : 'pointer',
+                            fontSize: '1rem',
+                            opacity: adding ? 0.7 : 1,
+                        }}
+                    >
                         {adding ? 'Adding...' : '+ Add Manga'}
                     </button>
 
-                    <button onClick={onClose} style={{ padding: '1rem', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '14px', cursor: 'pointer' }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            flex: '1 1 100px',
+                            padding: '1rem',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '14px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                        }}
+                    >
                         Cancel
                     </button>
                 </div>
@@ -112,37 +257,108 @@ const AddModal = ({ manga, onClose, onAdded }) => {
 };
 
 const CardContent = ({ manga, isAlreadyAdded, userRating, onAddClick }) => (
-    <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <h2 style={{ color: 'var(--text-main)', fontSize: '1rem', margin: '0 0 0.2rem 0', fontWeight: '800', lineHeight: '1.3' }}>
-            <TitleWithAltNames title={manga.title} altTitles={manga.altTitles ?? []} mediaRaw={manga._raw ?? null} />
+    <div
+        className="manga-entry-body recommendation-card-body"
+        style={{
+            padding: 'clamp(0.65rem, 2vw, 1rem)',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minWidth: 0,
+        }}
+    >
+        <h2
+            className="manga-entry-title recommendation-card-title"
+            style={{
+                color: 'var(--text-main)',
+                fontSize: 'clamp(0.85rem, 2.3vw, 1rem)',
+                margin: '0 0 0.2rem 0',
+                fontWeight: '800',
+                lineHeight: '1.25',
+            }}
+        >
+            <TitleWithAltNames
+                title={manga.title}
+                altTitles={manga.altTitles ?? []}
+                mediaRaw={manga._raw ?? null}
+            />
         </h2>
 
         {manga.author && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0 0 0.6rem 0' }}>by {manga.author}</p>
+            <p className="recommendation-author" style={{ color: 'var(--text-muted)', fontSize: '0.76rem', margin: '0 0 0.5rem 0' }}>
+                by {manga.author}
+            </p>
         )}
 
         {manga.genres?.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.75rem' }}>
-                {manga.genres.slice(0, 5).map(g => (
-                    <span key={g} style={{ background: 'var(--border-color)', color: 'var(--text-muted)', padding: '0.15rem 0.55rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+            <div
+                className="manga-genre-list recommendation-genres"
+                style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.28rem',
+                    marginBottom: '0.65rem',
+                }}
+            >
+                {manga.genres.slice(0, 5).map((g) => (
+                    <span
+                        key={g}
+                        style={{
+                            background: 'var(--border-color)',
+                            color: 'var(--text-muted)',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                            fontSize: '0.66rem',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
                         {g}
                     </span>
                 ))}
             </div>
         )}
 
-        <RatingDisplay userRating={userRating} averageRating={manga.averageRating ?? 0} ratingCount={manga.ratingCount ?? 0} />
+        <RatingDisplay
+            userRating={userRating}
+            averageRating={manga.averageRating ?? 0}
+            ratingCount={manga.ratingCount ?? 0}
+        />
 
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', WebkitLineClamp: 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.45', flex: 1, margin: '0 0 1rem 0' }}>
+        <p
+            className="recommendation-synopsis"
+            style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.8rem',
+                WebkitLineClamp: 3,
+                display: '-webkit-box',
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                lineHeight: '1.45',
+                flex: 1,
+                margin: '0 0 0.85rem 0',
+            }}
+        >
             {manga.synopsis || 'No description available.'}
         </p>
 
         <button
             onClick={onAddClick}
             disabled={isAlreadyAdded}
-            style={{ width: '100%', padding: '0.65rem', borderRadius: '12px', background: isAlreadyAdded ? '#4CAF50' : 'var(--text-main)', color: isAlreadyAdded ? 'white' : 'var(--bg-color)', border: 'none', fontWeight: 'bold', cursor: isAlreadyAdded ? 'default' : 'pointer', fontSize: '0.9rem' }}
+            className="manga-entry-edit recommendation-add-button"
+            style={{
+                width: '100%',
+                padding: '0.6rem',
+                borderRadius: '12px',
+                background: isAlreadyAdded ? '#4CAF50' : 'var(--text-main)',
+                color: isAlreadyAdded ? 'white' : 'var(--bg-color)',
+                border: 'none',
+                fontWeight: 'bold',
+                cursor: isAlreadyAdded ? 'default' : 'pointer',
+                fontSize: '0.85rem',
+            }}
         >
-            {isAlreadyAdded ? '✔ Added' : '+ Add to List'}
+            {isAlreadyAdded ? '✔ Added' : '+ Add'}
         </button>
     </div>
 );
@@ -153,9 +369,34 @@ const RecCard = ({ manga, onAdded, isAlreadyAdded, userRating }) => {
     const [showModal, setShowModal] = useState(false);
 
     return (
-        <li style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-            <div style={{ height: '300px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#1a1a1a' }}>
-                <img src={manga.posterImage || '/placeholder.png'} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} alt={manga.title} />
+        <li
+            className="recommendation-card"
+            style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                minWidth: 0,
+            }}
+        >
+            <div
+                className="recommendation-cover"
+                style={{
+                    height: 'clamp(140px, 32vw, 300px)',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    backgroundColor: '#1a1a1a',
+                }}
+            >
+                <img
+                    src={manga.posterImage || '/placeholder.png'}
+                    referrerPolicy="no-referrer"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    alt={manga.title}
+                />
             </div>
 
             <CardContent
@@ -183,23 +424,51 @@ const RandomizerCard = ({ manga, onAdded, isAlreadyAdded, userRating, onSpin, sp
     const [showModal, setShowModal] = useState(false);
 
     return (
-        <li style={{
-            background: 'var(--card-bg)',
-            border: '2px solid #D4AF37',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 0 24px rgba(212,175,55,0.25), 0 4px 20px rgba(0,0,0,0.15)',
-            position: 'relative',
-        }}>
-            <div style={{ height: '4px', background: 'linear-gradient(90deg, #7B5B00, #D4AF37, #FFD700, #D4AF37, #7B5B00)', flexShrink: 0 }} />
+        <li
+            className="recommendation-card recommendation-random-card"
+            style={{
+                background: 'var(--card-bg)',
+                border: '2px solid #D4AF37',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 0 24px rgba(212,175,55,0.25), 0 4px 20px rgba(0,0,0,0.15)',
+                position: 'relative',
+                minWidth: 0,
+            }}
+        >
+            <div
+                style={{
+                    height: '4px',
+                    background: 'linear-gradient(90deg, #7B5B00, #D4AF37, #FFD700, #D4AF37, #7B5B00)',
+                    flexShrink: 0,
+                }}
+            />
 
-            <div style={{ background: 'linear-gradient(180deg, #120d00 0%, #1c1500 100%)', padding: '0.7rem 1rem 0.65rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem', borderBottom: '1px solid #3a2900', flexShrink: 0 }}>
+            <div
+                className="recommendation-random-header"
+                style={{
+                    background: 'linear-gradient(180deg, #120d00 0%, #1c1500 100%)',
+                    padding: '0.7rem 1rem 0.65rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    borderBottom: '1px solid #3a2900',
+                    flexShrink: 0,
+                }}
+            >
                 <button
                     onClick={spinning ? undefined : onSpin}
                     title={spinning ? 'Finding something new...' : "Fortune's Pick — click to randomize"}
-                    style={{ background: 'none', border: 'none', cursor: spinning ? 'wait' : 'pointer', padding: 0, lineHeight: 0 }}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: spinning ? 'wait' : 'pointer',
+                        padding: 0,
+                        lineHeight: 0,
+                    }}
                 >
                     <div
                         className="gem-glow"
@@ -214,13 +483,35 @@ const RandomizerCard = ({ manga, onAdded, isAlreadyAdded, userRating, onSpin, sp
                     />
                 </button>
 
-                <span style={{ color: '#D4AF37', fontSize: '0.6rem', fontWeight: '800', letterSpacing: '0.14em', opacity: 0.9 }}>
+                <span
+                    className="recommendation-random-label"
+                    style={{
+                        color: '#D4AF37',
+                        fontSize: '0.6rem',
+                        fontWeight: '800',
+                        letterSpacing: '0.14em',
+                        opacity: 0.9,
+                    }}
+                >
                     {spinning ? 'SEARCHING...' : "FORTUNE'S PICK"}
                 </span>
             </div>
 
-            <div style={{ height: '260px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#1a1a1a' }}>
-                <img src={manga.posterImage || '/placeholder.png'} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} alt={manga.title} />
+            <div
+                className="recommendation-cover recommendation-random-cover"
+                style={{
+                    height: 'clamp(130px, 30vw, 260px)',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    backgroundColor: '#1a1a1a',
+                }}
+            >
+                <img
+                    src={manga.posterImage || '/placeholder.png'}
+                    referrerPolicy="no-referrer"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    alt={manga.title}
+                />
             </div>
 
             <CardContent
@@ -246,7 +537,16 @@ const LoadMoreButton = ({ onClick }) => (
     <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
         <button
             onClick={onClick}
-            style={{ padding: '0.65rem 2rem', borderRadius: '12px', background: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}
+            style={{
+                padding: '0.75rem 2rem',
+                borderRadius: '12px',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border-color)',
+                cursor: 'pointer',
+                fontWeight: '700',
+                fontSize: '0.95rem',
+            }}
         >
             Load More
         </button>
@@ -255,7 +555,12 @@ const LoadMoreButton = ({ onClick }) => (
 
 export default function Recommendations() {
     const { isLoaded, isSignedIn } = useAuth();
-    const [recs, setRecs] = useState({ selectedGenre: '', basedOnTaste: [], trending: [], randomPool: [] });
+    const [recs, setRecs] = useState({
+        selectedGenre: '',
+        basedOnTaste: [],
+        trending: [],
+        randomPool: [],
+    });
     const [addedIds, setAddedIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -269,13 +574,13 @@ export default function Recommendations() {
 
         if (isSignedIn) {
             fetch('/api/manga/collection')
-                .then(r => r.ok ? r.json() : [])
-                .then(list => {
+                .then((r) => (r.ok ? r.json() : []))
+                .then((list) => {
                     if (!Array.isArray(list)) return;
 
                     const ids = new Set();
 
-                    list.forEach(entry => {
+                    list.forEach((entry) => {
                         const kid = entry.mangaId?.kitsuId;
                         if (kid) ids.add(String(kid));
                     });
@@ -286,7 +591,7 @@ export default function Recommendations() {
         }
 
         fetch('/api/manga/recommendations')
-            .then(res => {
+            .then((res) => {
                 if (!res.ok) {
                     console.error('API FAILED:', res.status);
                     return null;
@@ -294,11 +599,11 @@ export default function Recommendations() {
 
                 return res.json();
             })
-            .then(data => {
+            .then((data) => {
                 if (data) setRecs(data);
                 setLoading(false);
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error('Fetch error:', err);
                 setError('Failed to load recommendations.');
                 setLoading(false);
@@ -311,10 +616,10 @@ export default function Recommendations() {
         const candidate = recs.basedOnTaste[recVisible] ?? recs.randomPool?.[0] ?? null;
 
         if (candidate) setRandomizerItem(candidate);
-    }, [recs.basedOnTaste, recs.randomPool]);
+    }, [randomizerItem, recVisible, recs.basedOnTaste, recs.randomPool]);
 
     const handleMangaAdded = (kitsuId) => {
-        setAddedIds(prev => new Set(prev).add(String(kitsuId)));
+        setAddedIds((prev) => new Set(prev).add(String(kitsuId)));
     };
 
     const HISTORY_KEY = 'randomizerHistory';
@@ -329,7 +634,7 @@ export default function Recommendations() {
     };
 
     const addToHistory = (kitsuId) => {
-        let h = getHistory().filter(id => id !== kitsuId);
+        let h = getHistory().filter((id) => id !== kitsuId);
 
         h.push(kitsuId);
 
@@ -374,7 +679,7 @@ export default function Recommendations() {
     };
 
     const handleLoadMoreRecs = () => {
-        setRecVisible(v => Math.min(v + 5, recs.basedOnTaste.length));
+        setRecVisible((v) => Math.min(v + 5, recs.basedOnTaste.length));
     };
 
     const regularRecs = recs.basedOnTaste.slice(0, recVisible);
@@ -382,21 +687,62 @@ export default function Recommendations() {
     const hasMoreTrend = trendVisible < (recs.trending?.length ?? 0);
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '2rem' }}>
+        <div
+            className="manga-page recommendation-page"
+            style={{
+                minHeight: '100vh',
+                background: 'var(--bg-color)',
+                padding: 'clamp(0.85rem, 4vw, 2rem)',
+            }}
+        >
             <main style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <h1 style={{ color: 'var(--text-main)', fontSize: '2.5rem', marginBottom: '2rem', fontWeight: '900' }}>Discover</h1>
+                <h1
+                    style={{
+                        color: 'var(--text-main)',
+                        fontSize: 'clamp(2rem, 8vw, 2.5rem)',
+                        margin: '0 0 clamp(1.25rem, 5vw, 2rem) 0',
+                        fontWeight: '900',
+                    }}
+                >
+                    Discover
+                </h1>
 
                 {error && <p style={{ color: '#ff4444' }}>{error}</p>}
 
                 {recs?.basedOnTaste?.length > 0 && (
-                    <section style={{ marginBottom: '4rem' }}>
-                        <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--accent-green)', paddingLeft: '1rem', marginBottom: '0.5rem' }}>Recommended For You</h2>
+                    <section style={{ marginBottom: 'clamp(2.5rem, 8vw, 4rem)' }}>
+                        <h2
+                            style={{
+                                color: 'var(--text-main)',
+                                borderLeft: '5px solid var(--accent-green)',
+                                paddingLeft: '1rem',
+                                marginBottom: '0.5rem',
+                                fontSize: 'clamp(1.25rem, 5vw, 1.5rem)',
+                            }}
+                        >
+                            Recommended For You
+                        </h2>
 
-                        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', marginLeft: '1.3rem' }}>
+                        <p
+                            style={{
+                                color: 'var(--text-muted)',
+                                marginBottom: 'clamp(1.25rem, 5vw, 2rem)',
+                                marginLeft: '1.3rem',
+                            }}
+                        >
                             {recs.selectedGenre ? `Because you like ${recs.selectedGenre}` : 'Based on your history'}
                         </p>
 
-                        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                        <ul
+                            className="recommendation-grid"
+                            style={{
+                                listStyle: 'none',
+                                padding: 0,
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(110px, 18vw, 220px), 1fr))',
+                                gap: 'clamp(0.55rem, 2vw, 1.5rem)',
+                            }}
+                        >
                             {randomizerItem && (
                                 <RandomizerCard
                                     key={`randomizer-${randomizerItem.kitsuId}`}
@@ -409,7 +755,7 @@ export default function Recommendations() {
                                 />
                             )}
 
-                            {regularRecs.map(m => (
+                            {regularRecs.map((m) => (
                                 <RecCard
                                     key={m.kitsuId}
                                     manga={m}
@@ -425,14 +771,33 @@ export default function Recommendations() {
                 )}
 
                 <section>
-                    <h2 style={{ color: 'var(--text-main)', borderLeft: '5px solid var(--border-color)', paddingLeft: '1rem', marginBottom: '2rem' }}>Global Trending</h2>
+                    <h2
+                        style={{
+                            color: 'var(--text-main)',
+                            borderLeft: '5px solid var(--border-color)',
+                            paddingLeft: '1rem',
+                            marginBottom: 'clamp(1.25rem, 5vw, 2rem)',
+                            fontSize: 'clamp(1.25rem, 5vw, 1.5rem)',
+                        }}
+                    >
+                        Global Trending
+                    </h2>
 
                     {loading ? (
                         <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
                     ) : (
                         <>
-                            <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
-                                {recs?.trending?.slice(0, trendVisible).map(m => (
+                            <ul
+                                className="recommendation-grid"
+                                style={{
+                                    listStyle: 'none',
+                                    padding: 0,
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(110px, 18vw, 220px), 1fr))',
+                                    gap: 'clamp(0.55rem, 2vw, 1.5rem)',
+                                }}
+                            >
+                                {recs?.trending?.slice(0, trendVisible).map((m) => (
                                     <RecCard
                                         key={m.kitsuId}
                                         manga={m}
@@ -443,7 +808,7 @@ export default function Recommendations() {
                                 ))}
                             </ul>
 
-                            {hasMoreTrend && <LoadMoreButton onClick={() => setTrendVisible(t => t + 5)} />}
+                            {hasMoreTrend && <LoadMoreButton onClick={() => setTrendVisible((t) => t + 5)} />}
                         </>
                     )}
                 </section>

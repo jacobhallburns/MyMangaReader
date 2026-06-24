@@ -344,19 +344,20 @@ export default function MangaList() {
     );
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '1rem' }}>
-            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="manga-page" style={{ minHeight: '100vh', background: 'var(--bg-color)', padding: '1rem' }}>
+            <div className="manga-page-inner" style={{ maxWidth: '1000px', margin: '0 auto' }}>
 
-                <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-color)', paddingBottom: '1rem' }}>
+                <div className="manga-filter-bar" style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-color)', paddingBottom: '1rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1rem' }}>
                         <input
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search List..."
+                            className="manga-search-input"
                             style={{ padding: '0.8rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-main)' }}
                         />
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                        <div className="manga-filter-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
                             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>
                                 <option value="All">All Status</option>
                                 <option value="reading">Reading</option>
@@ -376,10 +377,11 @@ export default function MangaList() {
                     </div>
                 </div>
 
-                <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <ul className="manga-list" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {visibleManga.map((entry) => (
                         <li
                             key={entry._id}
+                            className="manga-entry-card"
                             onClick={() => openDetail(entry)}
                             style={{
                                 background: 'var(--card-bg)',
@@ -392,7 +394,7 @@ export default function MangaList() {
                                 cursor: 'pointer'
                             }}
                         >
-                            <div style={{
+                            <div className="manga-entry-cover" style={{
                                 width: '140px',
                                 height: '210px',
                                 backgroundColor: '#1a1a1a',
@@ -410,40 +412,30 @@ export default function MangaList() {
                                 />
                             </div>
 
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.2rem 0' }}>
+                            <div className="manga-entry-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '0.2rem 0' }}>
                                 <div>
-                                    <h2 style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.6rem 0', fontWeight: '800' }}>
-                                        <TitleWithAltNames title={entry.mangaId?.title || entry.title} altTitles={entry.mangaId?.altTitles ?? []} />
+                                    <h2 className="manga-entry-title" style={{ color: 'var(--text-main)', fontSize: '1.4rem', margin: '0 0 0.6rem 0', fontWeight: '800' }}>
+                                        <TitleWithAltNames
+                                            title={entry.mangaId?.title || entry.title}
+                                            altTitles={entry.mangaId?.altTitles ?? []}
+                                            rawTitles={entry.mangaId?.rawTitles ?? null}
+                                        />
                                     </h2>
 
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 0.75rem 0' }}>
-                                        {entry.mangaId?.synopsis?.slice(0, 200) || entry.synopsis?.slice(0, 200)}...
-                                    </p>
-
-                                    {(entry.mangaId?.genres || []).length > 0 && (
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.75rem' }}>
-                                            {entry.mangaId.genres.slice(0, 5).map(g => (
-                                                <span key={g} style={{ padding: '0.18rem 0.55rem', borderRadius: '20px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '600' }}>
-                                                    {g}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-
                                     {entry.notes && (
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '0.7rem 1rem', borderRadius: '12px', borderLeft: '4px solid var(--accent-green)', opacity: 0.9 }}>
+                                        <div className="manga-note-box" style={{ fontSize: '0.85rem', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '0.7rem 1rem', borderRadius: '12px', borderLeft: '4px solid var(--accent-green)', opacity: 0.9 }}>
                                             <span style={{ fontWeight: 'bold', color: 'var(--accent-green)' }}>Note:</span> {entry.notes}
                                         </div>
                                     )}
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                                    <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'center' }}>
-                                        <span style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'rgba(76, 175, 80, 0.15)', color: 'var(--accent-green)', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                <div className="manga-entry-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                                    <div className="manga-entry-meta" style={{ display: 'flex', gap: '0.7rem', alignItems: 'center' }}>
+                                        <span className="manga-status-chip" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: 'rgba(76, 175, 80, 0.15)', color: 'var(--accent-green)', fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                             {entry.status.replace(/_/g, ' ')}
                                         </span>
 
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                        <div className="manga-ratings" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                             {entry.rating > 0 && (
                                                 <span style={{ color: '#4CAF50', fontWeight: '700', fontSize: '0.82rem' }}>★ {entry.rating}</span>
                                             )}
@@ -460,6 +452,7 @@ export default function MangaList() {
                                     </div>
 
                                     <button
+                                        className="manga-entry-edit"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setEditingManga(entry);
@@ -469,7 +462,7 @@ export default function MangaList() {
                                         }}
                                         style={{ padding: '0.6rem 1.4rem', borderRadius: '12px', background: 'var(--text-main)', color: 'var(--bg-color)', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem' }}
                                     >
-                                        Edit Entry
+                                        Edit
                                     </button>
                                 </div>
                             </div>
@@ -483,6 +476,7 @@ export default function MangaList() {
                         style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}
                     >
                         <div
+                            className="manga-volume-modal"
                             onClick={(e) => e.stopPropagation()}
                             style={{ width: '92%', maxWidth: '900px', minHeight: '500px', maxHeight: '85vh', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '1.1rem', overflowY: 'hidden' }}
                         >
@@ -498,7 +492,11 @@ export default function MangaList() {
 
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <h2 style={{ margin: '0 0 0.2rem 0', color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: '800', lineHeight: 1.3 }}>
-                                        {mangaTitle || detailManga.mangaId?.title}
+                                        <TitleWithAltNames
+                                            title={mangaTitle || detailManga.mangaId?.title}
+                                            altTitles={detailManga.mangaId?.altTitles ?? []}
+                                            rawTitles={detailManga.mangaId?.rawTitles ?? null}
+                                        />
                                     </h2>
 
                                     {detailManga.mangaId?.author && (
@@ -509,7 +507,7 @@ export default function MangaList() {
 
                                     {(detailManga.mangaId?.genres || []).length > 0 && (
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                                            {detailManga.mangaId.genres.slice(0, 6).map(g => (
+                                            {detailManga.mangaId.genres.slice(0, 8).map(g => (
                                                 <span key={g} style={{ padding: '0.18rem 0.5rem', borderRadius: '20px', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '600' }}>
                                                     {g}
                                                 </span>
@@ -526,6 +524,12 @@ export default function MangaList() {
                                 </button>
                             </div>
 
+                            <div style={{ background: 'var(--bg-color)', borderRadius: '12px', padding: '0.85rem 1rem', maxHeight: '130px', overflowY: 'auto', flexShrink: 0 }}>
+                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.84rem', lineHeight: 1.5 }}>
+                                    {detailManga.mangaId?.synopsis || detailManga.synopsis || 'No description available.'}
+                                </p>
+                            </div>
+
                             {(() => {
                                 const states = Object.values(volumeStates);
                                 const readCount = states.filter(s => s.read).length;
@@ -534,7 +538,7 @@ export default function MangaList() {
                                 const total = volumes.length;
 
                                 return (
-                                    <div style={{ display: 'flex', gap: '1.25rem', background: 'var(--bg-color)', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.83rem', fontWeight: '600', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', gap: '1.25rem', background: 'var(--bg-color)', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.83rem', fontWeight: '600', color: 'var(--text-muted)', flexWrap: 'wrap', flexShrink: 0 }}>
                                         <span>Read: <span style={{ color: 'var(--accent-green)' }}>{readCount}/{total}</span></span>
                                         <span>Online: <span style={{ color: 'var(--text-main)' }}>{onlineCount}</span></span>
                                         <span>Physical: <span style={{ color: 'var(--text-main)' }}>{physicalCount}</span></span>
@@ -649,7 +653,7 @@ export default function MangaList() {
 
                 {editingManga && (
                     <div onClick={() => setEditingManga(null)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
-                        <div onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+                        <div className="manga-edit-modal" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '420px', background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border-color)', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
                             <h2 style={{ color: 'var(--text-main)', marginTop: 0, fontSize: '1.6rem' }}>Edit Entry</h2>
 
                             <div style={{ marginBottom: '1.2rem' }}>

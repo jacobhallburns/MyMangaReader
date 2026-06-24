@@ -1,13 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth, useClerk, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import { SUPPORTED_LANGUAGES } from '../lib/titleLocale';
 
-export default function AccountMenu() {
+export default function AccountMenu({
+    isDark,
+    lang,
+    onThemeToggle,
+    onLangChange,
+}) {
     const { isLoaded, isSignedIn } = useAuth();
     const { user } = useUser();
     const { redirectToSignIn, openUserProfile, signOut } = useClerk();
 
     const [open, setOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [profile, setProfile] = useState(null);
     const ref = useRef(null);
 
@@ -60,11 +67,15 @@ export default function AccountMenu() {
         const handleOutside = (e) => {
             if (ref.current && !ref.current.contains(e.target)) {
                 setOpen(false);
+                setSettingsOpen(false);
             }
         };
 
         const handleKey = (e) => {
-            if (e.key === 'Escape') setOpen(false);
+            if (e.key === 'Escape') {
+                setOpen(false);
+                setSettingsOpen(false);
+            }
         };
 
         document.addEventListener('mousedown', handleOutside);
@@ -82,6 +93,7 @@ export default function AccountMenu() {
         return (
             <button
                 onClick={() => redirectToSignIn()}
+                className="account-sign-in-button"
                 style={{
                     padding: '0.45rem 0.8rem',
                     borderRadius: '999px',
@@ -111,10 +123,16 @@ export default function AccountMenu() {
 
     const email = user?.primaryEmailAddress?.emailAddress || '';
 
+    const closeMenu = () => {
+        setOpen(false);
+        setSettingsOpen(false);
+    };
+
     return (
-        <div ref={ref} style={{ position: 'relative' }}>
+        <div ref={ref} className="account-menu" style={{ position: 'relative' }}>
             <button
                 onClick={() => setOpen((v) => !v)}
+                className="account-button"
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -139,18 +157,19 @@ export default function AccountMenu() {
                     }}
                 />
 
-                <span style={{ fontWeight: 800, fontSize: '0.85rem' }}>
+                <span className="account-name" style={{ fontWeight: 800, fontSize: '0.85rem' }}>
                     {displayName}
                 </span>
             </button>
 
             {open && (
                 <div
+                    className="account-dropdown"
                     style={{
                         position: 'absolute',
                         right: 0,
                         top: '115%',
-                        width: '250px',
+                        width: '270px',
                         background: 'var(--card-bg)',
                         border: '1px solid var(--border-color)',
                         borderRadius: '16px',
@@ -171,7 +190,7 @@ export default function AccountMenu() {
                         )}
 
                         {email && (
-                            <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-muted)', fontSize: '0.75rem', overflowWrap: 'anywhere' }}>
                                 {email}
                             </p>
                         )}
@@ -179,7 +198,7 @@ export default function AccountMenu() {
 
                     <Link
                         href="/profile"
-                        onClick={() => setOpen(false)}
+                        onClick={closeMenu}
                         style={{
                             display: 'block',
                             padding: '0.8rem 1rem',
@@ -193,7 +212,7 @@ export default function AccountMenu() {
 
                     <Link
                         href="/friends"
-                        onClick={() => setOpen(false)}
+                        onClick={closeMenu}
                         style={{
                             display: 'block',
                             padding: '0.8rem 1rem',
@@ -207,8 +226,96 @@ export default function AccountMenu() {
                     </Link>
 
                     <button
+                        onClick={() => setSettingsOpen((v) => !v)}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '0.8rem 1rem',
+                            background: 'transparent',
+                            border: 'none',
+                            borderTop: '1px solid var(--border-color)',
+                            color: 'var(--text-main)',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <span>Settings</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            {settingsOpen ? '▲' : '▼'}
+                        </span>
+                    </button>
+
+                    {settingsOpen && (
+                        <div
+                            style={{
+                                padding: '0.85rem 1rem 1rem',
+                                borderTop: '1px solid var(--border-color)',
+                                background: 'var(--bg-color)',
+                            }}
+                        >
+                            <label
+                                style={{
+                                    display: 'block',
+                                    color: 'var(--text-muted)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800,
+                                    marginBottom: '0.35rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.04em',
+                                }}
+                            >
+                                Title Language
+                            </label>
+
+                            <select
+                                value={lang}
+                                onChange={(e) => onLangChange(e.target.value)}
+                                className="account-settings-select"
+                                style={{
+                                    width: '100%',
+                                    padding: '0.65rem',
+                                    borderRadius: '10px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--card-bg)',
+                                    color: 'var(--text-main)',
+                                    marginBottom: '0.85rem',
+                                }}
+                            >
+                                {SUPPORTED_LANGUAGES.map((l) => (
+                                    <option key={l.code} value={l.code}>
+                                        {l.label}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <button
+                                onClick={onThemeToggle}
+                                style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '0.7rem 0.8rem',
+                                    borderRadius: '10px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--card-bg)',
+                                    color: 'var(--text-main)',
+                                    cursor: 'pointer',
+                                    fontWeight: 800,
+                                }}
+                            >
+                                <span>Theme</span>
+                                <span>{isDark ? 'Dark ☀️' : 'Light 🌙'}</span>
+                            </button>
+                        </div>
+                    )}
+
+                    <button
                         onClick={() => {
-                            setOpen(false);
+                            closeMenu();
                             openUserProfile();
                         }}
                         style={{

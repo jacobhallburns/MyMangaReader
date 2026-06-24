@@ -14,6 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await dbConnect();
 
   const { userId } = getAuth(req);
+
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -30,6 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     kitsuId: meta.kitsuId,
     title: meta.title,
     altTitles: meta.altTitles,
+    rawTitles: meta.rawTitles,
     synopsis: meta.synopsis,
     posterImage: meta.coverUrl,
     coverImage: meta.coverUrl,
@@ -54,14 +56,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       {
         $set: {
           status: status || 'plan_to_read',
-          rating: rating || 0,
+          rating: Number(rating) || 0,
           notes: notes || '',
         },
       },
       { upsert: true, new: true }
     );
 
-    if (rating) {
+    if (Number(rating) > 0) {
       await updateMangaRating(globalManga._id);
     }
 

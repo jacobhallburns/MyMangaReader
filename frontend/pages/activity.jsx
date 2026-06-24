@@ -116,14 +116,14 @@ function ActivityCard({ activity }) {
     >
       <div className="accent-bar" />
 
-      <img src={cover} alt="" className="manga-cover" />
+      <img src={cover} alt="" className="manga-cover" referrerPolicy="no-referrer" />
 
       <div className="activity-body">
         <div className="top-row">
           <div className="friend-cluster">
-            <img src={avatar} alt="" className="friend-avatar" />
+            <img src={avatar} alt="" className="friend-avatar" referrerPolicy="no-referrer" />
 
-            <div>
+            <div className="friend-text">
               <div className="friend-line">
                 <span className="friend-name">{friendName}</span>
                 <span className="username">{username}</span>
@@ -211,7 +211,7 @@ export default function FeedPage() {
       setFriendCount(data.friendCount || 0);
       setActivities(data.activities || []);
     } catch (err) {
-      console.warn('[ActivityPage] loadActivity failed');
+      console.warn('[ActivityPage] loadActivity failed', err);
       setError('Failed to load activity.');
     } finally {
       setLoading(false);
@@ -256,11 +256,13 @@ export default function FeedPage() {
 
   if (!isLoaded || loading) {
     return (
-      <main className="page">
-        <section className="top-card">
-          <div className="skeleton-title" />
-          <div className="skeleton-line" />
-        </section>
+      <main className="activity-page">
+        <div className="page-inner">
+          <section className="top-card">
+            <div className="skeleton-title" />
+            <div className="skeleton-line" />
+          </section>
+        </div>
 
         <style jsx>{styles}</style>
       </main>
@@ -269,15 +271,17 @@ export default function FeedPage() {
 
   if (!isSignedIn) {
     return (
-      <main className="page">
-        <section className="top-card">
-          <h2 className="title">Activity</h2>
-          <p className="empty-copy">Sign in to see what your friends are reading.</p>
+      <main className="activity-page">
+        <div className="page-inner">
+          <section className="top-card">
+            <h2 className="title">Activity</h2>
+            <p className="empty-copy">Sign in to see what your friends are reading.</p>
 
-          <button onClick={() => redirectToSignIn()} className="primary-button">
-            Sign In
-          </button>
-        </section>
+            <button onClick={() => redirectToSignIn()} className="primary-button">
+              Sign In
+            </button>
+          </section>
+        </div>
 
         <style jsx>{styles}</style>
       </main>
@@ -291,59 +295,48 @@ export default function FeedPage() {
 
   return (
     <main
-      className="page"
+      className="activity-page"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div
-        className="pull-indicator"
-        style={{
-          height: pullDistance > 0 ? `${Math.max(26, pullDistance)}px` : '0px',
-          opacity: pullDistance >= 70 || refreshing ? 1 : 0,
-        }}
-      >
-        {refreshing ? 'Refreshing...' : pullDistance >= 70 ? 'Release to refresh' : ''}
-      </div>
+      <div className="page-inner">
+        <div
+          className="pull-indicator"
+          style={{
+            height: pullDistance > 0 ? `${Math.max(26, pullDistance)}px` : '0px',
+            opacity: pullDistance >= 70 || refreshing ? 1 : 0,
+          }}
+        >
+          {refreshing ? 'Refreshing...' : pullDistance >= 70 ? 'Release to refresh' : ''}
+        </div>
 
-      <header className="page-header">
-        <h2 className="title">Activity</h2>
-        <div className="title-accent" />
-      </header>
+        <header className="page-header">
+          <h2 className="title">Activity</h2>
+          <div className="title-accent" />
+        </header>
 
-      {error && (
-        <p className="error">{error}</p>
-      )}
+        {error && (
+          <p className="error">{error}</p>
+        )}
 
-      <div className="layout">
-        <section className="main-column">
-          {activities.length === 0 ? (
-            <div className="empty-card">
-              <div className="empty-icon">✦</div>
-              <h3>{emptyTitle}</h3>
-              <p>{emptyText}</p>
+        {activities.length === 0 ? (
+          <div className="empty-card">
+            <div className="empty-icon">✦</div>
+            <h3>{emptyTitle}</h3>
+            <p>{emptyText}</p>
 
-              <Link href="/friends" className="link-button">
-                Manage Friends
-              </Link>
-            </div>
-          ) : (
-            <div className="activity-list">
-              {activities.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <aside className="side-panel">
-          <h3>More updates</h3>
-          <p>Add friends to see what they start, finish, rate, and note.</p>
-
-          <Link href="/friends" className="side-button">
-            Manage Friends
-          </Link>
-        </aside>
+            <Link href="/friends" className="link-button">
+              Manage Friends
+            </Link>
+          </div>
+        ) : (
+          <div className="activity-list">
+            {activities.map((activity) => (
+              <ActivityCard key={activity.id} activity={activity} />
+            ))}
+          </div>
+        )}
       </div>
 
       <style jsx>{styles}</style>
@@ -352,10 +345,16 @@ export default function FeedPage() {
 }
 
 const styles = `
-  .page {
-    max-width: 1120px;
+  .activity-page {
+    min-height: 100vh;
+    background: var(--bg-color);
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page-inner {
+    width: 100%;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 2rem 1rem;
   }
 
   .page-header {
@@ -379,7 +378,6 @@ const styles = `
 
   .top-card,
   .empty-card,
-  .side-panel,
   .activity-card {
     background: linear-gradient(145deg, var(--card-bg), rgba(204, 0, 0, 0.035));
     border: 1px solid var(--border-color);
@@ -391,18 +389,6 @@ const styles = `
     padding: 1.5rem;
   }
 
-  .layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 285px;
-    gap: 1.25rem;
-    margin-top: 0;
-    align-items: start;
-  }
-
-  .main-column {
-    min-width: 0;
-  }
-
   .activity-list {
     display: grid;
     gap: 1rem;
@@ -411,7 +397,8 @@ const styles = `
   .activity-card {
     position: relative;
     overflow: hidden;
-    display: flex;
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
     gap: 1rem;
     padding: 1rem;
   }
@@ -437,7 +424,6 @@ const styles = `
   }
 
   .activity-body {
-    flex: 1;
     min-width: 0;
   }
 
@@ -446,7 +432,6 @@ const styles = `
     justify-content: space-between;
     align-items: flex-start;
     gap: 0.8rem;
-    flex-wrap: wrap;
   }
 
   .friend-cluster {
@@ -464,6 +449,10 @@ const styles = `
     border: 2px solid var(--accent);
     background: var(--bg-color);
     flex-shrink: 0;
+  }
+
+  .friend-text {
+    min-width: 0;
   }
 
   .friend-line {
@@ -499,6 +488,8 @@ const styles = `
     padding: 0.3rem 0.65rem;
     font-size: 0.78rem;
     font-weight: 900;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .action-line {
@@ -560,30 +551,20 @@ const styles = `
     font-weight: 900;
   }
 
-  .side-panel {
-    position: sticky;
-    top: 1rem;
-    padding: 1.35rem;
-    overflow: hidden;
-    border-left: 4px solid #cc0000;
+  .empty-card {
+    padding: 1.6rem;
+    text-align: left;
   }
 
-  .side-panel h3,
   .empty-card h3 {
     margin: 0;
     color: var(--text-main);
   }
 
-  .side-panel p,
   .empty-card p,
   .empty-copy {
     color: var(--text-muted);
     line-height: 1.5;
-  }
-
-  .empty-card {
-    padding: 1.6rem;
-    text-align: left;
   }
 
   .empty-icon {
@@ -599,8 +580,7 @@ const styles = `
   }
 
   .primary-button,
-  .link-button,
-  .side-button {
+  .link-button {
     display: inline-block;
     border: none;
     border-radius: 13px;
@@ -611,10 +591,6 @@ const styles = `
     cursor: pointer;
     text-decoration: none;
     box-shadow: 0 10px 22px rgba(204, 0, 0, 0.22);
-  }
-
-  .side-button {
-    margin-top: 0.35rem;
   }
 
   .error {
@@ -660,25 +636,15 @@ const styles = `
     from {
       background-position: 200% 0;
     }
+
     to {
       background-position: -200% 0;
     }
   }
 
-  @media (max-width: 900px) {
-    .layout {
-      grid-template-columns: 1fr;
-    }
-
-    .side-panel {
-      position: static;
-      order: -1;
-    }
-  }
-
   @media (max-width: 560px) {
-    .page {
-      padding: 1.25rem 0.8rem;
+    .activity-page {
+      padding: 1.25rem 0.8rem 3rem;
     }
 
     .title {
@@ -686,18 +652,52 @@ const styles = `
     }
 
     .activity-card {
+      grid-template-columns: 64px minmax(0, 1fr);
       gap: 0.8rem;
       padding: 0.85rem;
+      border-radius: 18px;
     }
 
     .manga-cover {
       width: 64px;
       height: 92px;
+      border-radius: 12px;
     }
 
     .friend-avatar {
       width: 34px;
       height: 34px;
+    }
+
+    .top-row {
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .status-chip {
+      font-size: 0.72rem;
+      padding: 0.25rem 0.55rem;
+    }
+
+    .action-line {
+      font-size: 0.95rem;
+      margin-top: 0.65rem;
+    }
+
+    .detail-pill {
+      font-size: 0.72rem;
+      padding: 0.22rem 0.55rem;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .activity-card {
+      grid-template-columns: 58px minmax(0, 1fr);
+    }
+
+    .manga-cover {
+      width: 58px;
+      height: 84px;
     }
   }
 `;
