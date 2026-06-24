@@ -49,7 +49,7 @@ export default function Terms() {
                 <h2>Contact</h2>
                 <p>
                     Questions about these terms can be sent to{' '}
-                    <strong>mymangareader@gmail.com</strong>.
+                    <strong>mymangareadercontact@gmail.com</strong>.
                 </p>
             </section>
         </main>

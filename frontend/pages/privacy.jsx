@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
                 <h2>Data Deletion</h2>
                 <p>
                     To request account or data deletion, contact us at{' '}
-                    <strong>mymangareader@gmail.com</strong>.
+                    <strong>mymangareadercontact@gmail.com</strong>.
                 </p>
 
                 <h2>Contact</h2>
